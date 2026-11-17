@@ -1,6 +1,8 @@
 # Private Meme Sharing App — Build Plan
 
-> Status: **Draft for approval.** Nothing is built yet. Once you approve, the work runs in waves of parallel agents as described in §8.
+> Status: **Approved and built.** Waves 0–1 are merged and integrated. Wave 2 (E2E tests, security review) is in progress. See README.md for usage.
+>
+> Deviations from this draft: the pairing fallback is a typed code (`XXXX-XXXX-…`) rather than 12 words. The optional app-lock passcode (§5.1.5) is deferred. A wiped phone without a backup recovers only the partner's messages (§10).
 
 ## 1. Goals and constraints
 
@@ -192,4 +194,4 @@ Work runs in **waves**. Each agent owns specific directories so parallel agents 
 | Strict mobile NAT blocks the direct connection | Optional self-hosted TURN (encrypted pass-through) |
 | iOS may evict PWA storage | Call `navigator.storage.persist()`, show a reminder to install to the Home Screen, and offer regular backup exports |
 | No notifications while the app is closed | Accepted for v1. Real push requires a cloud push service, which conflicts with the privacy goal. |
-| Losing a phone means losing its history | The partner's device keeps a full copy and re-syncs after re-pairing, plus backup files |
+| Losing a phone means losing its history | The partner's device keeps a full copy, but only the partner's own messages re-sync after re-pairing (a wiped phone gets a new device id). Regular backup exports restore everything. |
