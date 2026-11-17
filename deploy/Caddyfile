@@ -1,0 +1,24 @@
+# Caddy in front of the Meme Pals container on a small VPS.
+# Caddy obtains and renews the TLS certificate automatically (Let's Encrypt / ZeroSSL).
+#
+# 1. Point an A/AAAA record for memes.example.com at the VPS.
+# 2. Run the container bound to localhost only:
+#      docker run -d --name meme-pals --restart unless-stopped --read-only \
+#        -p 127.0.0.1:8787:8787 -e TRUST_PROXY=1 meme-pals
+# 3. Put this file at /etc/caddy/Caddyfile and `systemctl reload caddy`.
+
+memes.example.com {
+	# WebSocket upgrades on /ws are proxied automatically.
+	reverse_proxy 127.0.0.1:8787
+
+	# Compress text assets (images are skipped by default).
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# Caddy writes no access log unless a `log` directive is present.
+	# Keep it that way: the relay is meant to leave no trace.
+}
