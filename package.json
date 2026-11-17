@@ -1,0 +1,21 @@
+{
+  "name": "meme-sharing-app",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @memes/relay --filter @memes/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "start": "pnpm --filter @memes/web build && pnpm --filter @memes/relay start"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~5.8.3",
+    "vitest": "^5.1.0"
+  }
+}
