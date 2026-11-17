@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "start": "TSX_DISABLE_CACHE=1 tsx src/server.ts",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run"
   },

@@ -166,6 +166,17 @@ describe('reddit proxy', () => {
     expect((await fetch(`${r.url}/proxy/reddit/r/memes/hot.json`)).status).toBe(502);
   });
 
+  it('keeps only a safe `reason` from upstream error bodies', async () => {
+    let body: unknown = { reason: 'private', message: 'Forbidden', error: 403, secret: 'x' };
+    const r = await start({ fetchImpl: mockFetch(() => json(body, { status: 403 })) as typeof fetch });
+    let res = await fetch(`${r.url}/proxy/reddit/r/memes/hot.json`);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'upstream-status', status: 403, reason: 'private' });
+    body = { reason: '<script>alert(1)</script>' };
+    res = await fetch(`${r.url}/proxy/reddit/r/memes/hot.json`);
+    expect(await res.json()).toEqual({ error: 'upstream-status', status: 403 });
+  });
+
   it('does not follow redirects off reddit', async () => {
     const fetchImpl = mockFetch(() => new Response(null, { status: 302, headers: { location: 'https://evil.example/x.json' } }));
     const r = await start({ fetchImpl: fetchImpl as typeof fetch });

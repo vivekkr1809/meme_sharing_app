@@ -125,9 +125,17 @@ async function proxyJson(
     const upstream = await fetchUpstream(opts, url, allowHost, 'application/json', t.signal);
     t.arm();
     if (!upstream.ok) {
-      await upstream.body?.cancel().catch(() => {});
+      // Keep Reddit's `reason` (e.g. "private", "banned") so the client can explain
+      // why a subreddit is unavailable; everything else in the body is dropped.
+      let reason: string | undefined;
+      try {
+        const body = JSON.parse((await readCapped(upstream.body, 16 * 1024, t.arm)).toString('utf8'));
+        if (typeof body?.reason === 'string' && /^[\w-]{1,32}$/.test(body.reason)) reason = body.reason;
+      } catch {
+        await upstream.body?.cancel().catch(() => {});
+      }
       const status = upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502;
-      return sendJson(res, status, { error: 'upstream-status', status: upstream.status });
+      return sendJson(res, status, { error: 'upstream-status', status: upstream.status, ...(reason ? { reason } : {}) });
     }
     const type = upstream.headers.get('content-type') ?? '';
     if (!/^application\/(?:[\w.+-]+\+)?json\b/i.test(type)) {
