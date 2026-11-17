@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Meme Pals</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="0.6" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <path d="M150 128h212a58 58 0 0 1 58 58v118a58 58 0 0 1-58 58H262l-76 58v-58h-36a58 58 0 0 1-58-58V186a58 58 0 0 1 58-58z" fill="#fff"/>
+  <path d="M178 226q22-30 44 0M290 226q22-30 44 0" fill="none" stroke="#2a1745" stroke-width="20" stroke-linecap="round"/>
+  <path d="M192 268h128q-6 62-64 62t-64-62z" fill="#2a1745"/>
+  <path d="M222 304q34 18 68 0q-10 26-34 26t-34-26z" fill="#ff6b9a"/>
+  <path d="M398 92c-14-22-50-14-50 14 0 26 50 52 50 52s50-26 50-52c0-28-36-36-50-14z" fill="#ffd166" stroke="#fff" stroke-width="10"/>
+</svg>
