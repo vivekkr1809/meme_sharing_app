@@ -1,0 +1,501 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": "t3_1gxq0zz",
+    "dist": 19,
+    "modhash": "",
+    "geo_filter": null,
+    "before": null,
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxmod1",
+          "name": "t3_1gxmod1",
+          "title": "r/memes rules and FAQ - read before posting",
+          "subreddit": "memes",
+          "author": "memes-mod",
+          "score": 512,
+          "permalink": "/r/memes/comments/1gxmod1/rmemes_rules_and_faq/",
+          "url": "https://www.reddit.com/r/memes/comments/1gxmod1/rmemes_rules_and_faq/",
+          "is_self": true,
+          "is_video": false,
+          "post_hint": "self",
+          "stickied": true,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800000.0,
+          "selftext": "Be nice."
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxa001",
+          "name": "t3_1gxa001",
+          "title": "When the code works on the first try",
+          "subreddit": "memes",
+          "author": "pixel_pusher",
+          "score": 48211,
+          "permalink": "/r/memes/comments/1gxa001/when_the_code_works_on_the_first_try/",
+          "url": "https://i.redd.it/abc123first.jpeg",
+          "url_overridden_by_dest": "https://i.redd.it/abc123first.jpeg",
+          "domain": "i.redd.it",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731812345.0,
+          "thumbnail": "https://b.thumbs.redditmedia.com/xyz.jpg",
+          "preview": {
+            "enabled": true,
+            "images": [
+              {
+                "id": "prev1",
+                "source": { "url": "https://preview.redd.it/abc123first.jpeg?auto=webp&s=src", "width": 1200, "height": 1500 },
+                "resolutions": [
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=108&crop=smart&auto=webp&s=a", "width": 108, "height": 135 },
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=216&crop=smart&auto=webp&s=b", "width": 216, "height": 270 },
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=320&crop=smart&auto=webp&s=c", "width": 320, "height": 400 },
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=640&crop=smart&auto=webp&s=d", "width": 640, "height": 800 },
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=960&crop=smart&auto=webp&s=e", "width": 960, "height": 1200 },
+                  { "url": "https://preview.redd.it/abc123first.jpeg?width=1080&crop=smart&auto=webp&s=f", "width": 1080, "height": 1350 }
+                ],
+                "variants": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxa001",
+          "name": "t3_1gxa001",
+          "title": "When the code works on the first try (duplicate listing entry)",
+          "subreddit": "memes",
+          "author": "pixel_pusher",
+          "score": 48211,
+          "permalink": "/r/memes/comments/1gxa001/when_the_code_works_on_the_first_try/",
+          "url": "https://i.redd.it/abc123first.jpeg",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731812345.0
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxb002",
+          "name": "t3_1gxb002",
+          "title": "Gallery: stages of a Monday",
+          "subreddit": "memes",
+          "author": "weekday_woes",
+          "score": 9021,
+          "permalink": "/r/memes/comments/1gxb002/gallery_stages_of_a_monday/",
+          "url": "https://www.reddit.com/gallery/1gxb002",
+          "domain": "reddit.com",
+          "is_self": false,
+          "is_video": false,
+          "is_gallery": true,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731810000.0,
+          "gallery_data": {
+            "items": [
+              { "media_id": "galsecond", "id": 501 },
+              { "media_id": "galfirst", "id": 502 }
+            ]
+          },
+          "media_metadata": {
+            "galfirst": {
+              "status": "valid",
+              "e": "Image",
+              "m": "image/png",
+              "p": [
+                { "y": 108, "x": 108, "u": "https://preview.redd.it/galfirst.png?width=108&format=png&auto=webp&s=1" }
+              ],
+              "s": { "y": 1000, "x": 1000, "u": "https://preview.redd.it/galfirst.png?width=1000&format=png&auto=webp&s=2" },
+              "id": "galfirst"
+            },
+            "galsecond": {
+              "status": "valid",
+              "e": "Image",
+              "m": "image/jpg",
+              "p": [
+                { "y": 135, "x": 108, "u": "https://preview.redd.it/galsecond.jpg?width=108&crop=smart&auto=webp&s=11" },
+                { "y": 270, "x": 216, "u": "https://preview.redd.it/galsecond.jpg?width=216&crop=smart&auto=webp&s=12" },
+                { "y": 400, "x": 320, "u": "https://preview.redd.it/galsecond.jpg?width=320&crop=smart&auto=webp&s=13" },
+                { "y": 800, "x": 640, "u": "https://preview.redd.it/galsecond.jpg?width=640&crop=smart&auto=webp&s=14" },
+                { "y": 1200, "x": 960, "u": "https://preview.redd.it/galsecond.jpg?width=960&crop=smart&auto=webp&s=15" }
+              ],
+              "s": { "y": 1350, "x": 1080, "u": "https://preview.redd.it/galsecond.jpg?width=1080&format=pjpg&auto=webp&s=16" },
+              "id": "galsecond"
+            }
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxb003",
+          "name": "t3_1gxb003",
+          "title": "Gallery whose first item failed and second is an animated gif",
+          "subreddit": "memes",
+          "author": "gif_guru",
+          "score": 77,
+          "permalink": "/r/memes/comments/1gxb003/gallery_whose_first_item_failed/",
+          "url": "https://www.reddit.com/gallery/1gxb003",
+          "is_self": false,
+          "is_video": false,
+          "is_gallery": true,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731809000.0,
+          "gallery_data": { "items": [{ "media_id": "broken1" }, { "media_id": "anim1" }] },
+          "media_metadata": {
+            "broken1": { "status": "failed" },
+            "anim1": {
+              "status": "valid",
+              "e": "AnimatedImage",
+              "m": "image/gif",
+              "p": [{ "y": 480, "x": 640, "u": "https://preview.redd.it/anim1.gif?width=640&format=png8&s=31" }],
+              "s": {
+                "y": 600,
+                "x": 800,
+                "gif": "https://i.redd.it/anim1.gif",
+                "mp4": "https://preview.redd.it/anim1.gif?format=mp4&s=32"
+              },
+              "id": "anim1"
+            }
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxb004",
+          "name": "t3_1gxb004",
+          "title": "Gallery with only an mp4 animation",
+          "subreddit": "memes",
+          "author": "gif_guru",
+          "score": 5,
+          "permalink": "/r/memes/comments/1gxb004/gallery_mp4_only/",
+          "url": "https://www.reddit.com/gallery/1gxb004",
+          "is_self": false,
+          "is_video": false,
+          "is_gallery": true,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731808000.0,
+          "gallery_data": { "items": [{ "media_id": "mp4only" }] },
+          "media_metadata": {
+            "mp4only": {
+              "status": "valid",
+              "e": "AnimatedImage",
+              "m": "image/gif",
+              "s": { "y": 600, "x": 800, "mp4": "https://preview.redd.it/mp4only.gif?format=mp4&s=41" },
+              "id": "mp4only"
+            }
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxc005",
+          "name": "t3_1gxc005",
+          "title": "My cat discovering the vacuum (video)",
+          "subreddit": "memes",
+          "author": "catvideo",
+          "score": 3300,
+          "permalink": "/r/memes/comments/1gxc005/my_cat_discovering_the_vacuum/",
+          "url": "https://v.redd.it/vid0005",
+          "domain": "v.redd.it",
+          "is_self": false,
+          "is_video": true,
+          "post_hint": "hosted:video",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731807000.0,
+          "media": { "reddit_video": { "fallback_url": "https://v.redd.it/vid0005/DASH_720.mp4", "is_gif": false } },
+          "preview": {
+            "images": [
+              { "source": { "url": "https://external-preview.redd.it/vid0005.png?s=v", "width": 1280, "height": 720 }, "resolutions": [] }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxd006",
+          "name": "t3_1gxd006",
+          "title": "Unpopular opinion: pineapple belongs on pizza",
+          "subreddit": "memes",
+          "author": "hot_take_9000",
+          "score": -12,
+          "permalink": "/r/memes/comments/1gxd006/unpopular_opinion/",
+          "url": "https://www.reddit.com/r/memes/comments/1gxd006/unpopular_opinion/",
+          "is_self": true,
+          "is_video": false,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731806000.0,
+          "selftext": "Fight me."
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxe007",
+          "name": "t3_1gxe007",
+          "title": "Spicy meme (nsfw)",
+          "subreddit": "memes",
+          "author": "edgelord",
+          "score": 1500,
+          "permalink": "/r/memes/comments/1gxe007/spicy_meme/",
+          "url": "https://i.redd.it/nsfw007.png",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": true,
+          "spoiler": false,
+          "created_utc": 1731805000.0,
+          "preview": {
+            "images": [
+              {
+                "source": { "url": "https://preview.redd.it/nsfw007.png?auto=webp&amp;s=src7", "width": 500, "height": 400 },
+                "resolutions": [
+                  { "url": "https://preview.redd.it/nsfw007.png?width=108&amp;crop=smart&amp;s=a7", "width": 108, "height": 86 },
+                  { "url": "https://preview.redd.it/nsfw007.png?width=320&amp;crop=smart&amp;s=b7", "width": 320, "height": 256 }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxe008",
+          "name": "t3_1gxe008",
+          "title": "Finale spoilers inside",
+          "subreddit": "memes",
+          "author": "spoiler_alert",
+          "score": 800,
+          "permalink": "/r/memes/comments/1gxe008/finale_spoilers/",
+          "url": "https://i.redd.it/spoil008.webp",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": false,
+          "spoiler": true,
+          "created_utc": 1731804000.0
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxf009",
+          "name": "t3_1gxf009",
+          "title": "Imgur classic",
+          "subreddit": "memes",
+          "author": "oldschool",
+          "score": 640,
+          "permalink": "/r/memes/comments/1gxf009/imgur_classic/",
+          "url": "https://i.imgur.com/AbCd123.png",
+          "domain": "i.imgur.com",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "link",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731803000.0
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxf010",
+          "name": "t3_1gxf010",
+          "title": "Imgur gifv (actually a video)",
+          "subreddit": "memes",
+          "author": "oldschool",
+          "score": 420,
+          "permalink": "/r/memes/comments/1gxf010/imgur_gifv/",
+          "url": "https://i.imgur.com/ZyXw987.gifv",
+          "domain": "i.imgur.com",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "link",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731802000.0,
+          "preview": {
+            "images": [{ "source": { "url": "https://external-preview.redd.it/gifv010.png?s=g", "width": 400, "height": 300 }, "resolutions": [] }]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxf011",
+          "name": "t3_1gxf011",
+          "title": "Imgur page link (not a direct image)",
+          "subreddit": "memes",
+          "author": "oldschool",
+          "score": 10,
+          "permalink": "/r/memes/comments/1gxf011/imgur_page/",
+          "url": "https://imgur.com/gallery/qwerty",
+          "domain": "imgur.com",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "link",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731801000.0
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxg012",
+          "name": "t3_1gxg012",
+          "title": "Scientists discover memes are good for you",
+          "subreddit": "memes",
+          "author": "newsbot",
+          "score": 99,
+          "permalink": "/r/memes/comments/1gxg012/scientists_discover/",
+          "url": "https://news.example.com/article/12345",
+          "domain": "news.example.com",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "link",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800500.0,
+          "preview": {
+            "images": [{ "source": { "url": "https://external-preview.redd.it/news012.jpg?s=n", "width": 1200, "height": 630 }, "resolutions": [] }]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxh013",
+          "name": "t3_1gxh013",
+          "title": "Dancing gif",
+          "subreddit": "memes",
+          "author": "gif_guru",
+          "score": 2100,
+          "permalink": "/r/memes/comments/1gxh013/dancing_gif/",
+          "url": "https://i.redd.it/dance013.gif",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800400.0,
+          "preview": {
+            "images": [
+              {
+                "source": { "url": "https://preview.redd.it/dance013.gif?format=png8&s=src13", "width": 498, "height": 280 },
+                "resolutions": [
+                  { "url": "https://preview.redd.it/dance013.gif?width=108&format=png8&s=a13", "width": 108, "height": 60 },
+                  { "url": "https://preview.redd.it/dance013.gif?width=216&format=png8&s=b13", "width": 216, "height": 121 },
+                  { "url": "https://preview.redd.it/dance013.gif?width=320&format=png8&s=c13", "width": 320, "height": 179 }
+                ],
+                "variants": {
+                  "gif": { "source": { "url": "https://preview.redd.it/dance013.gif?s=g13", "width": 498, "height": 280 }, "resolutions": [] },
+                  "mp4": { "source": { "url": "https://preview.redd.it/dance013.gif?format=mp4&s=m13", "width": 498, "height": 280 }, "resolutions": [] }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxi014",
+          "name": "t3_1gxi014",
+          "title": "Template from imgflip",
+          "subreddit": "memes",
+          "author": "maker",
+          "score": 300,
+          "permalink": "/r/memes/comments/1gxi014/template_from_imgflip/",
+          "url": "https://i.imgflip.com/9xyz12.jpg",
+          "domain": "i.imgflip.com",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800300.0,
+          "preview": {
+            "images": [{ "source": { "url": "https://external-preview.redd.it/imgflip014.jpg?s=i", "width": 700, "height": 700 }, "resolutions": [] }]
+          }
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxj015",
+          "name": "t3_1gxj015",
+          "title": "Crosspost of the gallery",
+          "subreddit": "memes",
+          "author": "xposter",
+          "score": 40,
+          "permalink": "/r/memes/comments/1gxj015/crosspost/",
+          "url": "/r/wholesomememes/comments/1gwz999/original/",
+          "is_self": false,
+          "is_video": false,
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800200.0,
+          "crosspost_parent": "t3_1gwz999",
+          "crosspost_parent_list": [
+            {
+              "id": "1gwz999",
+              "title": "Original",
+              "subreddit": "wholesomememes",
+              "url": "https://i.redd.it/xpostparent.jpg",
+              "post_hint": "image",
+              "is_self": false,
+              "is_video": false,
+              "over_18": false,
+              "spoiler": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1gxk016",
+          "name": "t3_1gxk016",
+          "title": "[removed]",
+          "subreddit": "memes",
+          "author": "[deleted]",
+          "score": 1,
+          "permalink": "/r/memes/comments/1gxk016/removed/",
+          "url": "https://i.redd.it/removed016.jpg",
+          "is_self": false,
+          "is_video": false,
+          "post_hint": "image",
+          "removed_by_category": "moderator",
+          "over_18": false,
+          "spoiler": false,
+          "created_utc": 1731800100.0
+        }
+      },
+      { "kind": "t3", "data": null },
+      { "kind": "t1", "data": { "id": "comment1", "body": "not a post" } }
+    ]
+  }
+}
