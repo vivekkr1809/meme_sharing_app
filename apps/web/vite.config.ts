@@ -16,6 +16,7 @@ export default defineConfig({
       '/ws': { target: RELAY.replace(/^http/, 'ws'), ws: true },
       '/proxy': RELAY,
       '/health': RELAY,
+      '/config': RELAY,
     },
   },
   test: {
