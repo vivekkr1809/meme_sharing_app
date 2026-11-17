@@ -1,0 +1,48 @@
+# Fly.io config for Meme Pals (app + relay in one container).
+#
+#   fly launch --config deploy/fly.toml --no-deploy --copy-config   # first time: pick a unique app name
+#   fly deploy --config deploy/fly.toml --ha=false                   # run from the repo root
+#   fly scale count 1                                                # exactly ONE machine
+#
+# Rooms live in the memory of a single process, so both phones must reach the
+# same machine. Never run more than one machine (no HA, no multi-region).
+# No [mounts] section: the app has no volume and cannot persist anything.
+
+app = "meme-pals-CHANGE-ME"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../Dockerfile"
+
+[env]
+  PORT = "8787"
+  HOST = "0.0.0.0"
+  # Fly's edge proxy appends the real client IP to X-Forwarded-For.
+  TRUST_PROXY = "1"
+  # Optional TURN (set the credential as a secret: fly secrets set TURN_CREDENTIAL=...)
+  # TURN_URLS = "turn:turn.example.com:3478?transport=udp,turns:turn.example.com:5349?transport=tcp"
+  # TURN_USERNAME = "memepals"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # Stops the machine when nobody is connected; an open WebSocket keeps it running.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
