@@ -1,0 +1,76 @@
+{
+  "success": true,
+  "data": {
+    "memes": [
+      {
+        "id": "181913649",
+        "name": "Drake Hotline Bling",
+        "url": "https://i.imgflip.com/30b1gx.jpg",
+        "width": 1200,
+        "height": 1200,
+        "box_count": 2,
+        "captions": 1546000
+      },
+      {
+        "id": "87743020",
+        "name": "Two Buttons",
+        "url": "https://i.imgflip.com/1g8my4.jpg",
+        "width": 600,
+        "height": 908,
+        "box_count": 3,
+        "captions": 1029000
+      },
+      {
+        "id": "112126428",
+        "name": "Distracted Boyfriend",
+        "url": "https://i.imgflip.com/1ur9b0.jpg",
+        "width": 1200,
+        "height": 800,
+        "box_count": 3,
+        "captions": 1170000
+      },
+      {
+        "id": "93895088",
+        "name": "Expanding Brain",
+        "url": "https://i.imgflip.com/1jwhww.jpg",
+        "width": 857,
+        "height": 1202,
+        "box_count": 4,
+        "captions": 490000
+      },
+      {
+        "id": "438680",
+        "name": "Batman Slapping Robin",
+        "url": "https://i.imgflip.com/9ehk.jpg",
+        "width": 400,
+        "height": 387,
+        "box_count": 2,
+        "captions": 670000
+      },
+      {
+        "id": "181913649",
+        "name": "Drake Hotline Bling (duplicate)",
+        "url": "https://i.imgflip.com/30b1gx.jpg",
+        "width": 1200,
+        "height": 1200,
+        "box_count": 2
+      },
+      {
+        "id": "999",
+        "name": "Broken template with no url",
+        "width": 500,
+        "height": 500,
+        "box_count": 2
+      },
+      {
+        "id": "1000",
+        "name": "Zero size",
+        "url": "https://i.imgflip.com/zero.jpg",
+        "width": 0,
+        "height": 0,
+        "box_count": 2
+      },
+      "garbage"
+    ]
+  }
+}
