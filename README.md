@@ -66,8 +66,16 @@ On iPhone, use the Home Screen app rather than a Safari tab. iOS keeps an instal
 ### 3. Pair
 
 1. On one phone, tap **Show my code**.
-2. On the other, tap **Join my partner**, then scan the QR code or type the code.
+2. On the other, tap **Join my partner**, then **Scan QR code** and point the camera at the first phone's screen. It joins by itself as soon as it reads the code. You can also type the code.
 3. Once both screens say you're connected, you're done. You only pair once.
+
+Tips:
+
+- The camera needs the app's `https://` address. Over plain `http://` (for example a LAN IP during development) the phone won't allow it, so type the code or use a photo instead.
+- If the camera won't read it, turn up the brightness on the phone that shows the code and hold the phones 15–30 cm apart.
+- **Pairing from afar:** tap **Save QR image** on the first phone and send the picture to your partner. They tap **Choose a photo of the code** and pick it (a screenshot works too).
+
+Anyone with the code can pair with you until your partner joins. Share it only with your partner, preferably in person, and delete it from chats afterwards.
 
 ## Development
 
