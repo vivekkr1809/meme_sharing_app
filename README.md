@@ -36,7 +36,7 @@ A private app for two people to share memes and chat. **Nothing is stored in the
 | Meme browsing | Your phone fetches Reddit and Imgflip directly. If they block the browser, it goes through the relay's pass-through proxy, which caches and logs nothing |
 | STUN (finding a network path) | Public STUN servers see your IP address, as with any video-call app. You can run your own; see [deploy/README.md](deploy/README.md) |
 
-Since your history lives only on your devices, **use Settings → Export backup now and then**. If you lose a phone, a backup file is the only way to recover the messages it sent. See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model.
+Since your history lives only on your devices, **use Settings → Export backup now and then**. If you lose a phone, a backup file is the only way to recover the messages it sent. Backups are encrypted with a password you choose (at least 8 characters; a few random words work well). Keep the password safe: without it the backup can't be opened, and nobody can recover it. Older unencrypted backups still import. See [docs/SECURITY.md](docs/SECURITY.md) for the full threat model.
 
 ## Getting started
 
@@ -118,5 +118,6 @@ deploy/           hosting guides, Fly.io / Caddy / coturn configs
 - **No notifications while the app is closed.** Push notifications need a cloud push service, which conflicts with the privacy goal. Messages arrive the next time both apps are open.
 - **Both phones must be online at the same time** for messages to deliver. Until then they wait in the sender's outbox.
 - **A wiped or lost phone** gets your partner's messages back after re-pairing, but not the messages it sent, unless you restore a backup.
+- **Very large backups.** A backup file holds every meme, so it can get big. Files over 1 GB are refused, and exporting or importing needs free memory of three to five times the backup's size, which an older phone may not have with a huge library.
 - **Strict mobile networks** occasionally block direct connections. If pairing never connects on cellular data, set up the optional TURN server described in [deploy/README.md](deploy/README.md).
 - **Reddit** may rate-limit or block anonymous browsing. The app falls back to the relay proxy automatically.

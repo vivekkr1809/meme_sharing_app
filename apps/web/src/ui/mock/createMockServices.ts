@@ -19,6 +19,7 @@ import {
   type ReactionSummary,
   type Settings,
 } from '../../contracts';
+import { assertBackupPassword, encryptBackup, openBackupFile } from '../../db/backupCrypto';
 import { writable } from '../../lib/store';
 import { createDisabledLock } from '../../lib/disabledLock';
 import { CAPTIONS, createMockMemeServices } from './mockMemes';
@@ -640,8 +641,12 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
       },
     },
 
+    // Same file format as the real data layer for encryption (real PBKDF2 + AES-GCM, see
+    // db/backupCrypto.ts); the plaintext inside is the mock's own JSON.
     backup: {
-      async exportBackup() {
+      async exportBackup(opts) {
+        const password = opts?.password;
+        if (password !== undefined) assertBackupPassword(password);
         const memes = [];
         for (const e of library.values()) {
           memes.push({ meta: e.meta, data: e.blob ? await blobToBase64(e.blob) : null });
@@ -658,19 +663,15 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
           }),
           memes,
         };
-        return new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const plain = JSON.stringify(data);
+        return password === undefined ? new Blob([plain], { type: 'application/json' }) : encryptBackup(plain, password);
       },
-      async importBackup(file) {
-        let data: {
+      async importBackup(file, opts) {
+        const data = (await openBackupFile(file, opts?.password)) as {
           kind?: string;
           messages?: (Rec['m'] & { status?: DeliveryStatus; reactions?: Record<string, string> })[];
           memes?: { meta: LibraryMeme; data: string | null }[];
-        };
-        try {
-          data = JSON.parse(await file.text());
-        } catch {
-          throw new Error('invalid-backup');
-        }
+        } | null;
         if (data?.kind !== 'meme-pals-backup') throw new Error('invalid-backup');
         let nMemes = 0;
         let nMsgs = 0;
