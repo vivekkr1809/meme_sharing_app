@@ -21,7 +21,7 @@ import {
 } from '../../contracts';
 import { assertBackupPassword, encryptBackup, openBackupFile } from '../../db/backupCrypto';
 import { writable } from '../../lib/store';
-import { createDisabledLock } from '../../lib/disabledLock';
+import { createMockLock } from './mockLock';
 import { CAPTIONS, createMockMemeServices } from './mockMemes';
 import { memeArt, svgBlob } from './placeholder';
 
@@ -462,16 +462,32 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
 
   const ready = seed();
 
+  // ─── Passcode lock (in memory) ────────────────────────────────────────────
+  const lock = createMockLock({
+    timeScale: scale,
+    onLock: () => {
+      clearTimers();
+      partnerTyping.set(false);
+      connection.set('idle');
+    },
+    onUnlock: () => reconnect(),
+  });
+  /** Same rule as the real data layer: chat, library, pairing and settings refuse while locked. */
+  const assertUnlocked = () => {
+    if (lock.isLocked()) throw new Error('locked');
+  };
+
   // ─── Services ─────────────────────────────────────────────────────────────
   const memeServices = createMockMemeServices({ timeScale: scale });
 
   const services: MockAppServices = {
     ...memeServices,
-    lock: createDisabledLock(),
+    lock,
 
     pairing: {
       profile,
       async setDisplayName(name) {
+        assertUnlocked();
         const n = name.trim();
         if (!n) throw new Error('name-required');
         if (n.length > 40) throw new Error('name-too-long');
@@ -481,6 +497,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
         if (p) touchAll();
       },
       async createPairing() {
+        assertUnlocked();
         const p = profile.get();
         if (!p) throw new Error('no-profile');
         await sleep(250);
@@ -497,6 +514,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
         return code;
       },
       async acceptPairing(code) {
+        assertUnlocked();
         const p = profile.get();
         if (!p) throw new Error('no-profile');
         const secret = decodePairingCode(code);
@@ -511,6 +529,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
         });
       },
       async unpair() {
+        assertUnlocked();
         await sleep(150);
         clearTimers();
         const p = profile.get();
@@ -522,6 +541,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
       async wipe() {
         await sleep(200);
         clearTimers();
+        lock.reset();
         for (const e of library.values()) if (e.url?.startsWith('blob:')) URL.revokeObjectURL(e.url);
         library.clear();
         recs.clear();
@@ -545,6 +565,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
       messages,
       unreadCount,
       async loadOlder() {
+        assertUnlocked();
         await sleep(500);
         if (windowStart <= 0) return false;
         windowStart = Math.max(0, windowStart - 30);
@@ -552,16 +573,19 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
         return true;
       },
       async sendText(text, replyTo) {
+        assertUnlocked();
         const t = text.trim();
         if (!t) return;
         if (t.length > 10_000) throw new Error('message-too-long');
         await sendOwn({ id: ulid(), authorId: myId(), kind: 'text', text: t, replyTo, createdAt: Date.now() });
       },
       async sendMeme(memeId, caption, replyTo) {
+        assertUnlocked();
         if (!library.has(memeId)) throw new Error('meme-not-in-library');
         await sendOwn({ id: ulid(), authorId: myId(), kind: 'meme', memeId, text: caption, replyTo, createdAt: Date.now() });
       },
       async react(messageId, emoji) {
+        assertUnlocked();
         const r = recs.get(messageId);
         if (!r) return;
         const me = myId();
@@ -591,6 +615,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
     library: {
       version,
       async importImage(input) {
+        assertUnlocked();
         const e = await addToLibrary(input);
         bump();
         return e.meta;
@@ -619,6 +644,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
         return opts.limit ? all.slice(0, opts.limit) : all;
       },
       async toggleFavorite(memeId) {
+        assertUnlocked();
         const e = library.get(memeId);
         if (!e) throw new Error('not-found');
         e.meta = { ...e.meta, favorite: !e.meta.favorite };
@@ -637,6 +663,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
     settings: {
       settings,
       async update(patch) {
+        assertUnlocked();
         settings.set({ ...settings.get(), ...patch });
       },
     },
@@ -695,6 +722,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
 
     async dispose() {
       clearTimers();
+      lock.dispose();
     },
 
     demo: {

@@ -11,6 +11,7 @@ import { Icon } from '../components/Icon';
 import { useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import { downloadBlob } from '../nav';
+import { PasscodeSection } from './PasscodeSettings';
 
 const MAX_SUBS = 20;
 
@@ -43,6 +44,7 @@ export function Settings() {
         <MemesSection />
         <ConnectionSection />
         <InstallCard />
+        <PasscodeSection />
         <BackupSection />
         <PrivacySection />
         <DangerSection />

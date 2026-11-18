@@ -1,0 +1,65 @@
+/* Passcode lock: lock screen + Settings section. Uses the theme tokens from styles.css. */
+
+.lock-screen .flow-inner.center {
+  min-height: 100dvh;
+}
+.lock-form {
+  width: 100%;
+  text-align: left;
+}
+.lock-input {
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+.lock-input.is-numeric {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4em;
+}
+.lock-form .link-btn {
+  align-self: center;
+}
+.lock-wait {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-2);
+  text-align: center;
+}
+.lock-wait strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.lock-forgot {
+  color: var(--text-3);
+}
+.lock-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--banner-warn-bg);
+  color: var(--banner-warn-fg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+:root[data-theme='dark'] .lock-warning {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface));
+  color: var(--text);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .lock-warning {
+    background: color-mix(in srgb, var(--warn) 16%, var(--surface));
+    color: var(--text);
+  }
+}
+.card > .row-info.lock-status {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.lock-status svg {
+  color: var(--accent-text);
+  flex: none;
+}
+.dialog-body.form > * + * {
+  margin-top: 0;
+}

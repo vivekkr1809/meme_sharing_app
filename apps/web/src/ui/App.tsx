@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { AppServices } from '../contracts';
 import { InstallBanner } from '../pwa/InstallHint';
 import { UpdateToast } from '../pwa/UpdateToast';
-import { ServicesProvider, useProfile, useSettings, useUnreadCount } from './context';
+import { useReadable } from '../lib/store';
+import { ServicesProvider, useProfile, useServices, useSettings, useUnreadCount } from './context';
 import { Icon, type IconName } from './components/Icon';
 import { ConfirmProvider } from './components/Modal';
 import { ToastProvider } from './components/Toast';
@@ -10,6 +11,7 @@ import { NavProvider, TABS, useHashTab, type Tab } from './nav';
 import { Chat } from './screens/Chat';
 import { Discover } from './screens/Discover';
 import { Gallery } from './screens/Gallery';
+import { LockScreen } from './screens/Lock';
 import { Make } from './screens/Make';
 import { Onboarding } from './screens/Onboarding';
 import { Pairing } from './screens/Pairing';
@@ -25,7 +27,7 @@ export function App({ services }: { services: AppServices }) {
       <ToastProvider>
         <ConfirmProvider>
           <UpdateToast />
-          <Root />
+          <LockGate />
         </ConfirmProvider>
       </ToastProvider>
     </ServicesProvider>
@@ -52,6 +54,13 @@ function ThemeSync() {
     return () => mq?.removeEventListener?.('change', apply);
   }, [theme]);
   return null;
+}
+
+/** While the passcode lock is closed nothing but the lock screen renders (no data is loaded anyway). */
+function LockGate() {
+  const state = useReadable(useServices().lock.state);
+  if (state === 'locked') return <LockScreen />;
+  return <Root />;
 }
 
 function Root() {

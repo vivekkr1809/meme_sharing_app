@@ -35,6 +35,14 @@ const MESSAGES: Record<string, string> = {
   'bad-response': "Couldn't load that right now. Try again in a bit.",
   'invalid-url': "Couldn't download that image. Try another one.",
   'unsupported-environment': "This browser can't do that. Try a recent Safari or Chrome.",
+  // Passcode lock (src/sync/engine.ts, LockService).
+  'locked': 'Meme Pals is locked. Unlock it first.',
+  'wrong-passcode': "That passcode isn't right.",
+  'too-many-attempts': 'Too many tries. Wait a moment, then try again.',
+  'weak-passcode': 'Use at least 4 characters. 6 or more digits, or a short phrase, is much safer.',
+  'already-enabled': 'The passcode lock is already on.',
+  'not-enabled': 'The passcode lock is off.',
+  'invalid-minutes': 'Pick one of the auto-lock times.',
 };
 
 export function errorCode(err: unknown): string {
