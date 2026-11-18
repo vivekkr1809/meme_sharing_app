@@ -1,4 +1,4 @@
-import { REDDIT_SORTS, SUBREDDIT_PATTERN, type RedditSort } from '@memes/shared';
+import { PROXY_IMAGE_HOSTS, REDDIT_SORTS, SUBREDDIT_PATTERN, type RedditSort } from '@memes/shared';
 import type { RedditPage, RedditPost, RedditSource } from '../contracts';
 import { MemeError } from './errors';
 import { fetchWithFallback, PRIVATE_FETCH_INIT, readJson, type RouteMemory } from './net';
@@ -19,6 +19,42 @@ export function cleanUrl(v: unknown): string | undefined {
   try {
     const u = new URL(s);
     return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const REDDIT_LINK_HOSTS = new Set(['www.reddit.com', 'reddit.com', 'old.reddit.com', 'new.reddit.com', 'redd.it']);
+
+/**
+ * A link to the post on Reddit, or undefined. `permalink` is untrusted: plain string
+ * concatenation turned "@evil.example/x" into "https://www.reddit.com@evil.example/x"
+ * (userinfo trick), so it is resolved as a URL and must stay on a Reddit host.
+ */
+export function safeRedditLink(permalink: string): string | undefined {
+  try {
+    const u = new URL(permalink, 'https://www.reddit.com/');
+    if (u.protocol !== 'https:' || u.username || u.password || u.port || !REDDIT_LINK_HOSTS.has(u.hostname)) return undefined;
+    return u.href;
+  } catch {
+    return undefined;
+  }
+}
+
+const KNOWN_IMAGE_HOSTS: ReadonlySet<string> = new Set(PROXY_IMAGE_HOSTS);
+
+/**
+ * Only images on the known Reddit/Imgur/Imgflip CDNs are shown. Any other host would
+ * learn the viewer's IP address (and that they browse this feed) just by rendering the
+ * tile, and the app's Content-Security-Policy (img-src) blocks such hosts anyway.
+ */
+function knownImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const u = new URL(url);
+    if (!KNOWN_IMAGE_HOSTS.has(u.hostname) || u.username || u.password || u.port) return undefined;
+    u.protocol = 'https:'; // every allow-listed host serves HTTPS
+    return u.href;
   } catch {
     return undefined;
   }
@@ -183,22 +219,25 @@ export function parseRedditPost(d: Json): RedditPost | null {
       nsfw ||= parent.over_18 === true || parent.spoiler === true;
     }
   }
-  if (!image) return null;
+  const imageUrl = knownImageUrl(image?.imageUrl);
+  if (!image || !imageUrl) return null;
+  const thumbUrl = knownImageUrl(image.thumbUrl);
 
   const subreddit = str(d.subreddit) ?? '';
-  const permalinkPath = str(d.permalink) ?? `/r/${subreddit}/comments/${id}/`;
+  const fallbackLink = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/comments/${encodeURIComponent(id)}/`;
+  const permalink = safeRedditLink(str(d.permalink) ?? '') ?? safeRedditLink(fallbackLink)!;
   const post: RedditPost = {
     id,
     title: str(d.title) ?? '',
     subreddit,
     author: str(d.author) ?? '[deleted]',
     score: num(d.score) ?? 0,
-    permalink: permalinkPath.startsWith('http') ? permalinkPath : `https://www.reddit.com${permalinkPath}`,
-    imageUrl: image.imageUrl,
+    permalink,
+    imageUrl,
     nsfw,
     createdAt: Math.round((num(d.created_utc) ?? 0) * 1000),
   };
-  if (image.thumbUrl) post.thumbUrl = image.thumbUrl;
+  if (thumbUrl) post.thumbUrl = thumbUrl;
   if (image.width !== undefined && image.height !== undefined) {
     post.width = image.width;
     post.height = image.height;

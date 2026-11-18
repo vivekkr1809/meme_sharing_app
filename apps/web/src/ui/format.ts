@@ -1,3 +1,4 @@
+import { safeRedditLink } from '../memes/reddit';
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
 const dateFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -34,6 +35,8 @@ export function backupFileName(d = new Date()): string {
   return `meme-pals-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
 }
 
+/** Link to a Reddit post; anything that isn't a Reddit URL falls back to reddit.com. */
 export function redditUrl(permalink: string): string {
-  return /^https?:\/\//.test(permalink) ? permalink : `https://www.reddit.com${permalink.startsWith('/') ? '' : '/'}${permalink}`;
+  const path = /^[a-z][a-z0-9+.-]*:/i.test(permalink) || permalink.startsWith('/') ? permalink : `/${permalink}`;
+  return safeRedditLink(path) ?? 'https://www.reddit.com/';
 }
