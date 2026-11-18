@@ -12,6 +12,10 @@ const MESSAGES: Record<string, string> = {
   'meme-not-in-library': "That meme isn't saved on this device.",
   'message-too-long': 'That message is too long.',
   'invalid-backup': "That file isn't a Meme Pals backup.",
+  'password-required': 'This backup is encrypted. Enter its password to import it.',
+  'wrong-password': 'Wrong password. Check it and try again.',
+  'weak-password': 'Use at least 8 characters for the backup password.',
+  'backup-too-large': 'Your library is too big for one backup file in this browser. Remove some memes and try again.',
   'no-profile': 'Please set your name first.',
   // Codes from the real data layer (src/sync) and meme services (src/memes, MemeError.code).
   'empty-name': 'Please enter a name.',
