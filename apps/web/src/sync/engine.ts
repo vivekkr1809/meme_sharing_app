@@ -165,7 +165,7 @@ export class Engine implements DataServices {
     this.typingRefreshMs = opts.typingRefreshMs ?? 3000;
     this.kdfIterations = opts.kdfIterations ?? PBKDF2_ITERATIONS;
     this.minKdfIterations = Math.min(PBKDF2_MIN_ITERATIONS, this.kdfIterations);
-    this.now = opts.now ?? Date.now;
+    this.now = opts.now ?? (() => Date.now());
     const doc = (globalThis as { document?: VisibilitySource }).document;
     this.visibility = opts.visibility !== undefined ? opts.visibility : doc && typeof doc.addEventListener === 'function' ? doc : null;
     this.memes = new MemeStore(

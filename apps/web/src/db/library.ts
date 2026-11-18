@@ -80,7 +80,7 @@ export class MemeStore implements MemeLibrary {
     const gen = this.generation;
     const p = (async () => {
       const row = await this.db().memeData.get(memeId);
-      if (!row || gen !== this.generation) return null;
+      if (!row || !(row.data instanceof ArrayBuffer) || gen !== this.generation) return null;
       const url = makeUrl(row.data, row.mime);
       this.urls.set(memeId, url);
       return url;
@@ -146,7 +146,7 @@ export class MemeStore implements MemeLibrary {
 
   async getData(memeId: string): Promise<{ mime: string; data: Uint8Array } | undefined> {
     const row = await this.db().memeData.get(memeId);
-    return row ? { mime: row.mime, data: new Uint8Array(row.data) } : undefined;
+    return row && row.data instanceof ArrayBuffer ? { mime: row.mime, data: new Uint8Array(row.data) } : undefined;
   }
 
   /**

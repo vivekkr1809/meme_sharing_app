@@ -127,7 +127,16 @@ async function decryptRow(state: AtRestCrypto, table: string, pk: unknown, row: 
     fields.map(async (f) => {
       const e = row[f] as EncryptedField;
       const ct = typeof e.ct === 'string' ? e.ct : toBase64Url(e.ct);
-      const pt = await unseal(key, { iv: e.iv, ct }, aad(table, f, pk));
+      let pt: Uint8Array;
+      try {
+        pt = await unseal(key, { iv: e.iv, ct }, aad(table, f, pk));
+      } catch {
+        // Tampered, or moved from another row/field (the AAD doesn't match). Fail closed for
+        // this field only: it reads as absent, and one bad row can't block unlocking.
+        console.warn(`[lock] unreadable ${table}.${f} in row ${JSON.stringify(pk)}`);
+        delete out[f];
+        return;
+      }
       out[f] = e.t === 's' ? dec.decode(pt) : pt.buffer.byteLength === pt.byteLength ? pt.buffer : pt.slice().buffer;
     }),
   );
