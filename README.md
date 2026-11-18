@@ -110,6 +110,6 @@ deploy/           hosting guides, Fly.io / Caddy / coturn configs
 - **No notifications while the app is closed.** Push notifications need a cloud push service, which conflicts with the privacy goal. Messages arrive the next time both apps are open.
 - **Both phones must be online at the same time** for messages to deliver. Until then they wait in the sender's outbox.
 - **A wiped or lost phone** gets your partner's messages back after re-pairing, but not the messages it sent, unless you restore a backup.
-- **Very large backups.** A backup file holds every meme, so it can get big. Files over 1 GB are refused, and exporting or importing needs free memory of roughly three times the backup's size, which an older phone may not have with a huge library.
+- **Very large backups.** A backup file holds every meme, so it can get big. Files over 1 GB are refused, and exporting or importing needs free memory of three to five times the backup's size, which an older phone may not have with a huge library.
 - **Strict mobile networks** occasionally block direct connections. If pairing never connects on cellular data, set up the optional TURN server described in [deploy/README.md](deploy/README.md).
 - **Reddit** may rate-limit or block anonymous browsing. The app falls back to the relay proxy automatically.

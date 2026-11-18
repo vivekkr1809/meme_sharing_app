@@ -29,7 +29,7 @@ import {
  * - The plain JSON must fit in one JS string (Chromium: ~512 MiB), since it is built with
  *   JSON.stringify and parsed with JSON.parse; bigger exports fail with 'backup-too-large'.
  * - WebCrypto AES-GCM is one-shot, so encrypting/decrypting holds plaintext + ciphertext in memory at
- *   once: budget roughly 3× the plain backup size in free memory.
+ *   once: budget roughly 3–5× the plain backup size in free memory.
  */
 
 export const ENCRYPTED_BACKUP_FORMAT = 'meme-pals-backup-encrypted';
