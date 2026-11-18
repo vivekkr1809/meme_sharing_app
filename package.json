@@ -11,7 +11,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "start": "pnpm --filter @memes/web build && pnpm --filter @memes/relay start"
+    "start": "pnpm --filter @memes/web build && pnpm --filter @memes/relay start",
+    "test:e2e": "pnpm --filter @memes/web build && vitest run --config e2e/vitest.config.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
