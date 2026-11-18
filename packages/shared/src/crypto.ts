@@ -45,9 +45,14 @@ export function randomId(nBytes = 16): string {
 
 export function toBase64Url(data: Uint8Array | ArrayBuffer): string {
   const b = data instanceof Uint8Array ? data : new Uint8Array(data);
-  let bin = '';
-  for (const x of b) bin += String.fromCharCode(x);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // Encode in chunks (a multiple of 3 bytes, so chunk outputs concatenate without padding):
+  // building one binary string byte by byte is O(n) string growth and very slow for memes.
+  const CHUNK = 3 * 16384;
+  const parts: string[] = [];
+  for (let i = 0; i < b.length; i += CHUNK) {
+    parts.push(btoa(String.fromCharCode.apply(null, b.subarray(i, i + CHUNK) as unknown as number[])));
+  }
+  return parts.join('').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export function fromBase64Url(s: string): Uint8Array<ArrayBuffer> {

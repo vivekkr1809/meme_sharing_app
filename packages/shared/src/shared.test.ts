@@ -101,3 +101,19 @@ describe('util', () => {
     expect(got).toEqual([1]);
   });
 });
+
+describe('base64url', () => {
+  it('round-trips large and odd-sized buffers quickly', async () => {
+    const { toBase64Url, fromBase64Url, randomBytes } = await import('./index');
+    for (const n of [0, 1, 2, 3, 49151, 49152, 49153]) {
+      const b = randomBytes(n);
+      expect(fromBase64Url(toBase64Url(b))).toEqual(b);
+    }
+    const big = new Uint8Array(20 * 1024 * 1024).map((_, i) => i * 31);
+    const t = performance.now();
+    const s = toBase64Url(big);
+    expect(performance.now() - t).toBeLessThan(1500);
+    expect(s.length).toBe(Math.ceil((big.length * 4) / 3));
+    expect(fromBase64Url(s).length).toBe(big.length);
+  });
+});
