@@ -137,3 +137,23 @@ export type ControlFrameType = ControlFrame['type'];
 export const BLOB_CHUNK_BYTES = 16 * 1024;
 /** Max meme size accepted over P2P. */
 export const MAX_MEME_BYTES = 15 * 1024 * 1024;
+
+/**
+ * The only image types a meme may be stored, sent or displayed as. Raster formats only:
+ * SVG (and anything else that can carry script) must never become a `blob:` URL on the
+ * app's origin, where opening it in a tab would run it with access to IndexedDB.
+ */
+export const MEME_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'] as const;
+export function isMemeMime(mime: unknown): mime is (typeof MEME_MIME_TYPES)[number] {
+  return typeof mime === 'string' && (MEME_MIME_TYPES as readonly string[]).includes(mime);
+}
+
+/** Max length (UTF-16 code units) of a JSON control frame accepted from the peer. */
+export const MAX_CONTROL_FRAME_CHARS = 256 * 1024;
+/** Max length of free-form strings in peer frames (titles, names, URLs). */
+export const MAX_PEER_STRING_CHARS = 2048;
+/**
+ * How far in the future (by its ULID timestamp) a partner's message or read marker may be.
+ * Anything later would permanently sort last and pin the sync / read watermarks.
+ */
+export const MAX_FUTURE_SKEW_MS = 24 * 60 * 60_000;

@@ -1,3 +1,5 @@
+import { MEME_MIME_TYPES } from '@memes/shared';
+
 /** Image formats we recognise from magic bytes. */
 export type SniffedMime =
   | 'image/jpeg'
@@ -9,7 +11,7 @@ export type SniffedMime =
   | 'image/bmp';
 
 /** Formats we're willing to store and send as a meme as-is (fetched from the Internet). */
-export const MEME_MIMES: ReadonlySet<string> = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']);
+export const MEME_MIMES: ReadonlySet<string> = new Set(MEME_MIME_TYPES);
 
 /** Formats whose pixels may carry an alpha channel. */
 export const ALPHA_CAPABLE_MIMES: ReadonlySet<string> = new Set(['image/png', 'image/webp', 'image/avif', 'image/heic']);

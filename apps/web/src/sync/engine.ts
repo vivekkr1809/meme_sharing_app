@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import {
+  MAX_FUTURE_SKEW_MS,
   PROTOCOL_VERSION,
   decodePairingCode,
   deriveKeys,
@@ -9,6 +10,7 @@ import {
   randomId,
   toBase64Url,
   ulid,
+  ulidTime,
   type ConnectionState,
   type ControlFrame,
   type Message,
@@ -76,6 +78,8 @@ export class Engine implements DataServices {
   private lastReceivedId: string | null = null;
   /** meme-wants sent on the current connection (avoid duplicates). */
   private wantInflight = new Set<string>();
+  /** Memes we are currently sending in response to `meme-want` (one transfer per meme at a time). */
+  private sendingBlobs = new Set<string>();
   private typingTimer: ReturnType<typeof setTimeout> | null = null;
   private typingSent = { active: false, at: 0 };
   private chain: Promise<unknown> = Promise.resolve();
@@ -430,6 +434,11 @@ export class Engine implements DataServices {
       console.warn('[sync] ignoring msg that claims our deviceId as author');
       return;
     }
+    if (isFarFuture(m.id)) {
+      // Not acked: the partner keeps it in its outbox and retries once clocks agree.
+      console.warn('[sync] ignoring msg whose id is too far in the future');
+      return;
+    }
     const existing = await this.db.messages.get(m.id);
     let unreadChanged = false;
     if (!existing) {
@@ -468,6 +477,7 @@ export class Engine implements DataServices {
 
   private async onPeerRead(upToId: string): Promise<void> {
     const r = this.row!;
+    if (isFarFuture(upToId)) return;
     if (r.peerReadId && upToId <= r.peerReadId) return;
     await this.saveProfile({ ...r, peerReadId: upToId });
     this.view.invalidateAll();
@@ -475,14 +485,20 @@ export class Engine implements DataServices {
   }
 
   private async onMemeWant(memeId: string): Promise<void> {
+    // A repeated want for a meme that is already being sent is a no-op. Without this, a
+    // flood of wants would load (and queue) one full copy of the bytes per request.
+    if (this.sendingBlobs.has(memeId)) return;
     const t = this.transport;
     const blob = await this.memes.getData(memeId);
     if (!blob || !t || !this.isConnected()) {
       this.send({ type: 'meme-missing', memeId });
       return;
     }
+    this.sendingBlobs.add(memeId);
     // Not awaited: a large transfer must not block the frame queue.
-    t.sendBlob(memeId, blob.mime, blob.data).catch((err) => console.warn('[sync] sendBlob failed', memeId, err));
+    t.sendBlob(memeId, blob.mime, blob.data)
+      .catch((err) => console.warn('[sync] sendBlob failed', memeId, err))
+      .finally(() => this.sendingBlobs.delete(memeId));
   }
 
   private async handleBlob(b: TransportEvents['blob']): Promise<void> {
@@ -654,6 +670,11 @@ export class Engine implements DataServices {
     this.settingsStore.set(next);
     if (next.relayUrl !== prev.relayUrl && this.row?.secret) await this.restartTransport();
   }
+}
+
+/** A ULID whose timestamp is more than MAX_FUTURE_SKEW_MS ahead of our clock. */
+function isFarFuture(id: string): boolean {
+  return ulidTime(id) > Date.now() + MAX_FUTURE_SKEW_MS;
 }
 
 function stripUndefined<T extends object>(o: T): T {
