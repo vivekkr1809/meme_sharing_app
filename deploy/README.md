@@ -50,6 +50,7 @@ The image builds the web app, then runs the relay as the unprivileged `node` use
 | `TURN_URLS` | unset | Comma list of `turn:`/`turns:` URLs (see [Optional: TURN](#optional-turn)) |
 | `TURN_USERNAME` / `TURN_CREDENTIAL` | unset | TURN long-term credentials |
 | `TRUST_PROXY` | unset | Set to `1` behind a reverse proxy (Fly, Render, Caddy, Cloudflare), so per-IP connection limits use the last `X-Forwarded-For` hop instead of the proxy's address |
+| `CSP_CONNECT_SRC` | unset | Extra `connect-src` origins for the app's Content-Security-Policy, space or comma separated. Only needed if users point Settings at a *different* relay and you want its `/config` and `/proxy` to work too (its WebSocket is already allowed via `wss:`). See `docs/SECURITY.md` |
 
 Check what the app will receive with `curl https://memes.example.com/config`.
 

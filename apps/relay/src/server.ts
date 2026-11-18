@@ -11,6 +11,8 @@ import { createRelay, iceServersFromEnv } from './relay';
  *   TURN_USERNAME    TURN username
  *   TURN_CREDENTIAL  TURN password
  *   TRUST_PROXY      "1" when behind a reverse proxy that sets X-Forwarded-For
+ *   CSP_CONNECT_SRC  extra CSP connect-src sources for the served app, space or comma separated
+ *                    (e.g. "https://other-relay.example" if users point Settings at another relay)
  *
  * Logs only lifecycle counts. Never logs room ids, device ids, envelopes or IPs.
  */
@@ -32,6 +34,7 @@ const relay = await createRelay({
   port: parsePort(env.PORT),
   host: env.HOST || '0.0.0.0',
   staticDir: env.STATIC_DIR || undefined,
+  cspConnectSrc: (env.CSP_CONNECT_SRC ?? '').split(/[\s,]+/).filter(Boolean),
   iceServers: iceServersFromEnv(env, (m) => log(`warning: ${m}`)),
   trustProxy: env.TRUST_PROXY === '1' || env.TRUST_PROXY === 'true',
   log,

@@ -19,6 +19,8 @@ export interface RelayOptions {
   host?: string;
   /** Directory with the built web app; served with SPA fallback when set. */
   staticDir?: string;
+  /** Extra Content-Security-Policy connect-src sources for the served app. */
+  cspConnectSrc?: string[];
   /** Upstream fetch for the proxies (tests inject a mock). */
   fetchImpl?: typeof fetch;
   /** Advertised at GET /config. Default: public STUN servers only. */
@@ -58,7 +60,7 @@ export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
     fetchImpl: opts.fetchImpl ?? globalThis.fetch.bind(globalThis),
     timeoutMs: opts.upstreamTimeoutMs ?? 10_000,
   };
-  const staticFiles = opts.staticDir ? new StaticFiles(opts.staticDir) : undefined;
+  const staticFiles = opts.staticDir ? new StaticFiles(opts.staticDir, { cspConnectSrc: opts.cspConnectSrc }) : undefined;
   const signaling = new Signaling({
     heartbeatMs: opts.heartbeatMs,
     rateLimit: opts.rateLimit,
