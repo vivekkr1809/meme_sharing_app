@@ -139,13 +139,7 @@ export class Signaling {
   // ── internals ──────────────────────────────────────────────────────────────
 
   private clientIp(req: IncomingMessage): string {
-    if (this.trustProxy) {
-      const xff = req.headers['x-forwarded-for'];
-      const value = Array.isArray(xff) ? xff[xff.length - 1] : xff;
-      const last = value?.split(',').pop()?.trim();
-      if (last) return last;
-    }
-    return req.socket.remoteAddress ?? 'unknown';
+    return clientIp(req, this.trustProxy);
   }
 
   private onConnection(ws: WebSocket, ip: string): void {
@@ -283,6 +277,17 @@ export class Signaling {
     const s = this.stats();
     this.log(`ws ${event} rooms=${s.rooms} sockets=${s.sockets}`);
   }
+}
+
+/** Client IP: the last X-Forwarded-For hop when behind a trusted proxy, else the socket peer. */
+export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
+  if (trustProxy) {
+    const xff = req.headers['x-forwarded-for'];
+    const value = Array.isArray(xff) ? xff[xff.length - 1] : xff;
+    const last = value?.split(',').pop()?.trim();
+    if (last) return last;
+  }
+  return req.socket.remoteAddress ?? 'unknown';
 }
 
 function send(ws: WebSocket, msg: RelayToClient): void {

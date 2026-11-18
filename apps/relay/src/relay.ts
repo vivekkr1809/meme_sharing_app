@@ -4,7 +4,7 @@ import { RELAY_WS_PATH } from '@memes/shared';
 import { DEFAULT_STUN_URLS, type IceServerConfig } from './config';
 import { API_HEADERS, sendJson } from './http-util';
 import { handleImage, handleImgflip, handleReddit, type ProxyOptions } from './proxy';
-import { Signaling, type SignalingStats } from './signaling';
+import { Signaling, clientIp, type SignalingStats } from './signaling';
 import { StaticFiles } from './static';
 
 export type { IceServerConfig } from './config';
@@ -39,6 +39,11 @@ export interface RelayOptions {
   trustProxy?: boolean;
   /** Upstream timeout (headers, and idle time between body chunks). Default 10 s. */
   upstreamTimeoutMs?: number;
+  /**
+   * Concurrent /proxy requests: per client IP (default 8) and in total (default 64).
+   * Beyond these the relay answers 429, so it can't be used as a bandwidth amplifier.
+   */
+  proxyConcurrency?: { perIp: number; total: number };
 }
 
 export interface Relay {
@@ -69,6 +74,29 @@ export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
     log,
   });
 
+  const proxyLimit = { perIp: 8, total: 64, ...opts.proxyConcurrency };
+  const proxyInFlight = new Map<string, number>();
+  let proxyTotal = 0;
+  /** Run a proxy handler under the concurrency limits (counts are released when it finishes). */
+  async function limited(req: IncomingMessage, res: ServerResponse, handler: () => Promise<void>): Promise<void> {
+    const ip = clientIp(req, opts.trustProxy ?? false);
+    const n = proxyInFlight.get(ip) ?? 0;
+    if (n >= proxyLimit.perIp || proxyTotal >= proxyLimit.total) {
+      res.setHeader('Retry-After', '2');
+      return sendJson(res, 429, { error: 'rate-limited' });
+    }
+    proxyInFlight.set(ip, n + 1);
+    proxyTotal++;
+    try {
+      await handler();
+    } finally {
+      proxyTotal--;
+      const left = (proxyInFlight.get(ip) ?? 1) - 1;
+      if (left <= 0) proxyInFlight.delete(ip);
+      else proxyInFlight.set(ip, left);
+    }
+  }
+
   async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     let url: URL;
     try {
@@ -96,9 +124,9 @@ export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
       if (p === '/config') return sendJson(res, 200, { iceServers }, head);
       if (p === RELAY_WS_PATH) return sendJson(res, 426, { error: 'upgrade-required' }, head);
       if (head) return sendJson(res, 405, { error: 'method-not-allowed' });
-      if (p.startsWith('/proxy/reddit/')) return handleReddit(res, url, proxyOpts);
-      if (p === '/proxy/imgflip/get_memes') return handleImgflip(res, proxyOpts);
-      if (p === '/proxy/image') return handleImage(res, url, proxyOpts);
+      if (p.startsWith('/proxy/reddit/')) return limited(req, res, () => handleReddit(res, url, proxyOpts));
+      if (p === '/proxy/imgflip/get_memes') return limited(req, res, () => handleImgflip(res, proxyOpts));
+      if (p === '/proxy/image') return limited(req, res, () => handleImage(res, url, proxyOpts));
       return sendJson(res, 404, { error: 'not-found' });
     }
 
