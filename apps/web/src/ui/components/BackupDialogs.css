@@ -1,0 +1,100 @@
+/* Backup export/import dialogs (Settings → Backup). Uses the theme tokens from styles.css. */
+.backup-dialog .dialog-body {
+  margin: 0;
+}
+.backup-warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--banner-warn-bg);
+  color: var(--banner-warn-fg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.backup-warning svg {
+  flex: none;
+  margin-top: 1px;
+}
+.backup-warning strong {
+  font-weight: 650;
+}
+.pw-meter {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.pw-meter span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  transition: background 0.15s;
+}
+.pw-score-1 span:nth-child(-n + 1) {
+  background: var(--danger);
+}
+.pw-score-2 span:nth-child(-n + 2) {
+  background: var(--warn);
+}
+.pw-score-3 span {
+  background: var(--ok);
+}
+.backup-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.backup-show input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.backup-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.backup-progress-bar {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.backup-progress-bar span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--accent-grad);
+  animation: backup-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes backup-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .backup-progress-bar span {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}
+.backup-file-name {
+  font-weight: 650;
+  color: var(--text);
+  word-break: break-all;
+}
+.backup-result {
+  margin: 10px 0 0;
+}

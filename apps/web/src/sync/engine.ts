@@ -37,7 +37,8 @@ import type {
   TransportEvents,
   Unsubscribe,
 } from '../contracts';
-import { applyBackup, buildBackup, prepareBackup } from '../db/backup';
+import { applyBackup, buildBackup, readBackup, serializeBackup } from '../db/backup';
+import { assertBackupPassword, encryptBackup } from '../db/backupCrypto';
 import { AtRestCrypto, rewriteAll } from '../db/atRest';
 import { MemeStore } from '../db/library';
 import {
@@ -253,10 +254,15 @@ export class Engine implements DataServices {
     };
 
     this.backup = {
-      exportBackup: () =>
-        this.serial(async () => new Blob([JSON.stringify(await buildBackup(this.db))], { type: 'application/json' })),
-      importBackup: async (file) => {
-        const prepared = await prepareBackup(await file.text());
+      exportBackup: async (opts) => {
+        const password = opts?.password;
+        if (password !== undefined) assertBackupPassword(password);
+        // Read the DB on the queue; encrypt (PBKDF2 + AES-GCM) off it so sync isn't blocked meanwhile.
+        const plain = await this.serial(async () => serializeBackup(await buildBackup(this.db)));
+        return password === undefined ? new Blob([plain], { type: 'application/json' }) : encryptBackup(plain, password);
+      },
+      importBackup: async (file, opts) => {
+        const prepared = await readBackup(file, opts?.password);
         return this.serial(async () => {
           const before = this.settingsStore.get().relayUrl;
           const deviceBefore = this.row?.deviceId;

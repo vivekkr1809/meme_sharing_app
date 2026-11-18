@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import type { Theme } from '../../contracts';
 import { InstallCard } from '../../pwa/InstallHint';
 import { useConnection, useProfile, useServices, useSettings } from '../context';
-import { friendlyError } from '../errors';
+import { errorCode, friendlyError } from '../errors';
 import { backupFileName } from '../format';
+import { ExportBackupDialog, ImportPasswordDialog } from '../components/BackupDialogs';
 import { Segmented, Switch } from '../components/Controls';
 import { Icon } from '../components/Icon';
 import { useConfirm } from '../components/Modal';
@@ -277,47 +278,68 @@ function BackupSection() {
   const { backup } = useServices();
   const toast = useToast();
   const file = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  /** An encrypted file waiting for its password. */
+  const [locked, setLocked] = useState<File | null>(null);
+  const [result, setResult] = useState<string | null>(null);
 
-  const doExport = async () => {
-    setBusy('export');
-    try {
-      const blob = await backup.exportBackup();
-      downloadBlob(blob, backupFileName());
-      toast.success('Backup downloaded');
-    } catch (e) {
-      toast.error(friendlyError(e, "Couldn't create a backup."));
-    } finally {
-      setBusy(null);
-    }
+  const doExport = async (password: string) => {
+    const blob = await backup.exportBackup({ password });
+    downloadBlob(blob, backupFileName());
+    setExporting(false);
+    toast.success('Encrypted backup downloaded');
+  };
+
+  const imported = (f: File, r: { messages: number; memes: number }) => {
+    const what = `${r.messages} message${r.messages === 1 ? '' : 's'} and ${r.memes} meme${r.memes === 1 ? '' : 's'}`;
+    toast.success(`Imported ${what}`);
+    setResult(`Last import: ${what} from ${f.name}.`);
   };
 
   const doImport = async (f: File | undefined) => {
+    if (file.current) file.current.value = '';
     if (!f) return;
-    setBusy('import');
+    setBusy(true);
+    setResult(null);
     try {
-      const r = await backup.importBackup(f);
-      toast.success(`Imported ${r.messages} message${r.messages === 1 ? '' : 's'} and ${r.memes} meme${r.memes === 1 ? '' : 's'}`);
+      imported(f, await backup.importBackup(f));
     } catch (e) {
-      toast.error(friendlyError(e, "Couldn't import that backup."));
+      if (errorCode(e) === 'password-required') setLocked(f);
+      else toast.error(friendlyError(e, "Couldn't import that backup."));
     } finally {
-      setBusy(null);
-      if (file.current) file.current.value = '';
+      setBusy(false);
     }
+  };
+
+  const unlockAndImport = async (password: string) => {
+    const f = locked!;
+    const r = await backup.importBackup(f, { password });
+    setLocked(null);
+    imported(f, r);
   };
 
   return (
     <Group title="Backup" id="g-backup">
-      <p className="hint">Your history only lives on this phone. Save a backup file now and then, and keep it somewhere safe. It isn't encrypted.</p>
+      <p className="hint">
+        Your history only lives on this phone. Save a backup file now and then, and keep it somewhere safe. Backups are encrypted with a password you choose.
+      </p>
       <div className="btn-row">
-        <button type="button" className="btn btn-soft" onClick={doExport} disabled={!!busy}>
-          {busy === 'export' ? <span className="spinner sm" /> : <Icon name="download" size={18} />} Export backup
+        <button type="button" className="btn btn-soft" onClick={() => setExporting(true)} disabled={busy}>
+          <Icon name="download" size={18} /> Export backup
         </button>
-        <button type="button" className="btn btn-soft" onClick={() => file.current?.click()} disabled={!!busy}>
-          {busy === 'import' ? <span className="spinner sm" /> : <Icon name="upload" size={18} />} Import backup
+        <button type="button" className="btn btn-soft" onClick={() => file.current?.click()} disabled={busy}>
+          {busy ? <span className="spinner sm" /> : <Icon name="upload" size={18} />} Import backup
         </button>
         <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => void doImport(e.target.files?.[0])} aria-label="Backup file" data-testid="backup-file" />
       </div>
+      {result && (
+        <p className="hint backup-result" role="status">
+          {result}
+        </p>
+      )}
+      {exporting && <ExportBackupDialog onExport={doExport} onClose={() => setExporting(false)} />}
+      {locked && <ImportPasswordDialog fileName={locked.name} onSubmit={unlockAndImport} onClose={() => setLocked(null)} />}
     </Group>
   );
 }

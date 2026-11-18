@@ -7,11 +7,11 @@ import {
   isMemeMeta,
   isMessage,
   sha256Hex,
-  toBase64Url,
   type MemeMeta,
   type Message,
 } from '@memes/shared';
 import type { Settings } from '../contracts';
+import { bytesToBase64Url, openBackupFile } from './backupCrypto';
 import { mergeSettings, sanitizeSettings } from './settings';
 import {
   toArrayBuffer,
@@ -35,6 +35,9 @@ import {
  *   content id (sha256) on import; memes without valid bytes are imported as "missing"
  *   and requested from the partner on the next connection.
  * - Import is a merge: existing messages/memes are kept, so importing twice is a no-op.
+ *
+ * With a password, this JSON is the plaintext of an encrypted file (see backupCrypto.ts).
+ * Legacy plain files keep importing without a password.
  */
 
 export const BACKUP_FORMAT = 'meme-pals-backup';
@@ -98,10 +101,28 @@ export async function buildBackup(db: MemesDB): Promise<BackupFile> {
     memes: memes.map((m) => {
       const out: BackupMeme = { ...toMemeMeta(m), savedAt: m.savedAt, favorite: m.fav === 1 };
       const b = m.has ? bytes.get(m.id) : undefined;
-      if (b) out.data = toBase64Url(b);
+      if (b) out.data = bytesToBase64Url(new Uint8Array(b));
       return out;
     }),
   };
+}
+
+/** The plain backup JSON. Throws Error('backup-too-large') if it doesn't fit in one string. */
+export function serializeBackup(file: BackupFile): string {
+  try {
+    return JSON.stringify(file);
+  } catch (e) {
+    if (e instanceof RangeError) throw new Error('backup-too-large');
+    throw e;
+  }
+}
+
+/**
+ * Open a backup file (encrypted or legacy plain) and validate it.
+ * Throws Error('password-required' | 'wrong-password' | 'invalid-backup').
+ */
+export async function readBackup(file: Blob, password?: string): Promise<PreparedBackup> {
+  return prepareBackupValue(await openBackupFile(file, password));
 }
 
 function stripProfile(p: ProfileRow): BackupProfile {
@@ -133,6 +154,11 @@ export async function prepareBackup(text: string): Promise<PreparedBackup> {
   } catch {
     throw new Error('invalid-backup');
   }
+  return prepareBackupValue(raw);
+}
+
+/** Validate already-parsed backup JSON. */
+export async function prepareBackupValue(raw: unknown): Promise<PreparedBackup> {
   if (!isObj(raw) || raw.format !== BACKUP_FORMAT || raw.v !== BACKUP_VERSION) throw new Error('invalid-backup');
   if (!Array.isArray(raw.messages) || !Array.isArray(raw.memes)) throw new Error('invalid-backup');
 
