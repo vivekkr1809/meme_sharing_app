@@ -18,6 +18,7 @@ import {
 import { writable } from '../lib/store';
 import type {
   BackupService,
+  LockService,
   ChatService,
   CreateDataServicesOptions,
   DataServices,
@@ -35,6 +36,7 @@ import { requestPersistentStorage } from '../db/persist';
 import { MemesDB, toMessage, toMessageRow, type MessageRow, type ProfileRow } from '../db/schema';
 import { mergeSettings, sanitizeSettings } from '../db/settings';
 import { ChatView } from './chatView';
+import { createDisabledLock } from '../lib/disabledLock';
 
 /** Extra knobs (beyond the contract) for tests. */
 export interface EngineTuning {
@@ -94,6 +96,7 @@ export class Engine implements DataServices {
   readonly library: MemeStore;
   readonly settings: SettingsService;
   readonly backup: BackupService;
+  readonly lock: LockService = createDisabledLock();
 
   static async create(opts: EngineOptions): Promise<Engine> {
     const e = new Engine(opts);

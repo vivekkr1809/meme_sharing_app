@@ -20,6 +20,7 @@ import {
   type Settings,
 } from '../../contracts';
 import { writable } from '../../lib/store';
+import { createDisabledLock } from '../../lib/disabledLock';
 import { CAPTIONS, createMockMemeServices } from './mockMemes';
 import { memeArt, svgBlob } from './placeholder';
 
@@ -465,6 +466,7 @@ export function createMockServices(options: MockOptions = {}): MockAppServices {
 
   const services: MockAppServices = {
     ...memeServices,
+    lock: createDisabledLock(),
 
     pairing: {
       profile,

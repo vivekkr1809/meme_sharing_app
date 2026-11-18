@@ -172,11 +172,56 @@ export interface SettingsService {
   update(patch: Partial<Settings>): Promise<void>;
 }
 
+export interface BackupOptions {
+  /**
+   * Export: encrypt the file with this password (PBKDF2 → AES-GCM, see @memes/shared passcrypto).
+   * Import: password for an encrypted file. Ignored for legacy unencrypted files.
+   */
+  password?: string;
+}
+
 export interface BackupService {
-  /** A single local file containing messages, memes, profile and settings. */
-  exportBackup(): Promise<Blob>;
-  /** Merge a backup into the local DB (idempotent). */
-  importBackup(file: Blob): Promise<{ messages: number; memes: number }>;
+  /**
+   * A single local file containing messages, memes, profile and settings (never the pairing secret).
+   * With `password` the file is encrypted; without it, it is plain JSON (the UI always asks for one).
+   */
+  exportBackup(opts?: BackupOptions): Promise<Blob>;
+  /**
+   * Merge a backup into the local DB (idempotent).
+   * Throws Error('password-required') if the file is encrypted and no password was given,
+   * Error('wrong-password') if it doesn't decrypt, Error('invalid-backup') if malformed.
+   */
+  importBackup(file: Blob, opts?: BackupOptions): Promise<{ messages: number; memes: number }>;
+}
+
+/**
+ * disabled - no passcode set; data stored as before
+ * locked   - passcode set, data key not in memory: chat/library/pairing are unavailable,
+ *            the transport is stopped, and only unlock() / pairing.wipe() work
+ * unlocked - passcode set and data key in memory; everything works
+ */
+export type LockState = 'disabled' | 'locked' | 'unlocked';
+
+export interface LockService {
+  state: Readable<LockState>;
+  /**
+   * Lock after the app has been hidden (backgrounded) this many minutes. 0 = as soon as it is hidden.
+   * Default 5. Always locked on a fresh app start when a passcode is set.
+   */
+  autoLockMinutes: Readable<number>;
+  /** ms until another unlock attempt is allowed (grows after repeated failures); 0 = allowed now. */
+  retryAfterMs: Readable<number>;
+  /** Set a passcode and encrypt local data at rest. Throws Error('weak-passcode') if < 4 chars. */
+  enable(passcode: string): Promise<void>;
+  /** Remove the passcode and decrypt local data. Throws Error('wrong-passcode'). */
+  disable(passcode: string): Promise<void>;
+  /** Throws Error('wrong-passcode') | Error('weak-passcode'). */
+  change(oldPasscode: string, newPasscode: string): Promise<void>;
+  /** Throws Error('wrong-passcode') | Error('too-many-attempts') (wait retryAfterMs). */
+  unlock(passcode: string): Promise<void>;
+  /** Drop the key from memory and stop syncing. No-op if disabled. */
+  lockNow(): Promise<void>;
+  setAutoLockMinutes(minutes: number): Promise<void>;
 }
 
 export interface DataServices {
@@ -185,6 +230,7 @@ export interface DataServices {
   library: MemeLibrary;
   settings: SettingsService;
   backup: BackupService;
+  lock: LockService;
   /** Stop transports, close DB. */
   dispose(): Promise<void>;
 }
