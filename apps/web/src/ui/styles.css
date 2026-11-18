@@ -880,14 +880,15 @@ h3 {
   border-radius: 24px;
   box-shadow: var(--shadow-md);
 }
+/* Always black-on-white with its own 4-module quiet zone (inside the image), in every theme. */
 .qr {
   display: block;
-  width: 232px;
-  height: 232px;
-  padding: 10px;
+  width: min(264px, 72vw);
+  height: auto;
+  aspect-ratio: 1;
   background: #fff;
-  border-radius: 18px;
-  box-shadow: inset 0 0 0 1px #eee;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 .qr-loading {
   display: grid;
@@ -913,6 +914,10 @@ h3 {
   word-break: break-all;
   user-select: all;
   max-width: 100%;
+}
+.pair-warning {
+  max-width: 34em;
+  text-align: center;
 }
 .pair-status {
   display: flex;
@@ -973,6 +978,38 @@ h3 {
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
+}
+.scanner-note {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 28px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: center;
+}
+.scan-actions {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scan-actions .hint {
+  text-align: center;
+}
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 .success-burst {
   font-size: 84px;

@@ -1,19 +1,19 @@
-import QRCode from 'qrcode';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useConnection, useProfile, useServices } from '../context';
 import { errorCode, friendlyError } from '../errors';
 import { Icon, Logo } from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { extractCode, pickPairingCode } from '../qr/code';
+import { scanImageFile } from '../qr/photo';
+import { downloadBlob, QR_PNG_NAME, qrPngBlob, qrSvgDataUrl } from '../qr/render';
+import { FOREIGN_QR_MESSAGE, QrScanner } from '../qr/Scanner';
+
+export { extractCode };
 
 type Mode = 'choose' | 'show' | 'join';
 
-const CODE_IN_TEXT = /[0-9A-Za-z]{4}(?:[-\s][0-9A-Za-z]{4}){7}/;
-
-/** A scanned QR may contain just the code, or a link that embeds it. */
-export function extractCode(raw: string): string {
-  const m = CODE_IN_TEXT.exec(raw);
-  return (m ? m[0] : raw).trim();
-}
+export const SHARE_WARNING =
+  'Anyone with this code can pair with you until your partner joins. Share it only with your partner, preferably in person, and delete it from chats afterwards.';
 
 export function Pairing({ onDone }: { onDone: () => void }) {
   const profile = useProfile();
@@ -124,8 +124,8 @@ function ShowCode({ onBack, onStarted, onContinue }: { onBack: () => void; onSta
   const profile = useProfile();
   const toast = useToast();
   const [code, setCode] = useState<string | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const once = useRef(false);
 
   useEffect(() => {
@@ -143,16 +143,14 @@ function ShowCode({ onBack, onStarted, onContinue }: { onBack: () => void; onSta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!code) return;
-    let alive = true;
-    QRCode.toString(code, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#1f1630', light: '#ffffff' } }).then(
-      (svg) => alive && setQr('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)),
-      () => alive && setQr(null),
-    );
-    return () => {
-      alive = false;
-    };
+  // The QR holds just the code (no URL), so any scanner app can read it too.
+  const qr = useMemo(() => {
+    if (!code) return null;
+    try {
+      return qrSvgDataUrl(code);
+    } catch {
+      return null;
+    }
   }, [code]);
 
   const copy = async () => {
@@ -162,6 +160,19 @@ function ShowCode({ onBack, onStarted, onContinue }: { onBack: () => void; onSta
       toast.success('Code copied');
     } catch {
       toast.error("Couldn't copy. Select the code and copy it by hand.");
+    }
+  };
+
+  const save = async () => {
+    if (!code) return;
+    setSaving(true);
+    try {
+      downloadBlob(await qrPngBlob(code), QR_PNG_NAME);
+      toast.success('QR image saved');
+    } catch {
+      toast.error("Couldn't create the image here. Copy the code instead.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -178,25 +189,33 @@ function ShowCode({ onBack, onStarted, onContinue }: { onBack: () => void; onSta
             {error}
           </p>
         ) : qr ? (
-          <img className="qr" src={qr} alt={`QR code for pairing code ${code}`} width={232} height={232} />
+          <img className="qr" src={qr} alt={`QR code for pairing code ${code}`} width={264} height={264} />
         ) : (
           <div className="qr qr-loading">
             <span className="spinner" />
           </div>
         )}
         {code && (
-          <div className="code-row">
+          <>
             <code className="pair-code" aria-label="Pairing code">
               {code}
             </code>
-            <button type="button" className="btn btn-soft btn-sm" onClick={copy}>
-              <Icon name="copy" size={16} /> Copy
-            </button>
-          </div>
+            <div className="code-row">
+              <button type="button" className="btn btn-soft btn-sm" onClick={copy}>
+                <Icon name="copy" size={16} /> Copy
+              </button>
+              <button type="button" className="btn btn-soft btn-sm" onClick={save} disabled={saving}>
+                <Icon name="download" size={16} /> Save QR image
+              </button>
+            </div>
+            <p className="fineprint pair-warning">
+              <Icon name="lock" size={14} /> {SHARE_WARNING}
+            </p>
+          </>
         )}
       </div>
       <ConnectionStatus />
-      <p className="fineprint">Keep this screen open until your partner connects. Only share the code with them.</p>
+      <p className="fineprint">Keep this screen open until your partner connects. Turning up the brightness helps the camera read it.</p>
       <button type="button" className="link-btn" onClick={onContinue} disabled={!code}>
         Continue anyway
       </button>
@@ -204,12 +223,19 @@ function ShowCode({ onBack, onStarted, onContinue }: { onBack: () => void; onSta
   );
 }
 
+const PHOTO_NO_QR = 'Couldn’t find a QR code in that picture. Try a sharper photo or an uncropped screenshot, or type the code below.';
+const PHOTO_FOREIGN = `${FOREIGN_QR_MESSAGE}. Pick the picture of your partner’s pairing code.`;
+const PHOTO_UNREADABLE = 'That picture couldn’t be opened. Try another one, or type the code below.';
+
 function JoinPartner({ onBack, onStarted, onContinue, started }: { onBack: () => void; onStarted: () => void; onContinue: () => void; started: boolean }) {
   const { pairing } = useServices();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [readingPhoto, setReadingPhoto] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const submit = async (value: string) => {
     const c = extractCode(value);
@@ -229,6 +255,13 @@ function JoinPartner({ onBack, onStarted, onContinue, started }: { onBack: () =>
     }
   };
 
+  /** A code read from the camera or a photo: show it, then join straight away. */
+  const joinScanned = (c: string) => {
+    setScanError(null);
+    setCode(c);
+    void submit(c);
+  };
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void submit(code);
@@ -240,6 +273,23 @@ function JoinPartner({ onBack, onStarted, onContinue, started }: { onBack: () =>
       setCode(extractCode(t));
     } catch {
       setError('Paste isn’t available here. Long-press the field and choose Paste.');
+    }
+  };
+
+  const onPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // so choosing the same picture again still fires a change
+    if (!file) return;
+    setScanError(null);
+    setReadingPhoto(true);
+    try {
+      const { code: found, foreign } = pickPairingCode(await scanImageFile(file));
+      if (found) joinScanned(found);
+      else setScanError(foreign ? PHOTO_FOREIGN : PHOTO_NO_QR);
+    } catch {
+      setScanError(PHOTO_UNREADABLE);
+    } finally {
+      setReadingPhoto(false);
     }
   };
 
@@ -263,22 +313,58 @@ function JoinPartner({ onBack, onStarted, onContinue, started }: { onBack: () =>
         <>
           {scanning ? (
             <QrScanner
-              onResult={(text) => {
+              onCode={(c) => {
                 setScanning(false);
-                const c = extractCode(text);
-                setCode(c);
-                void submit(c);
+                joinScanned(c);
               }}
               onCancel={() => setScanning(false)}
-              onError={(msg) => {
+              onProblem={(msg) => {
                 setScanning(false);
-                setError(msg);
+                setScanError(msg);
               }}
             />
           ) : (
-            <button type="button" className="btn btn-soft btn-block btn-lg" onClick={() => (setError(null), setScanning(true))}>
-              <Icon name="camera" /> Scan QR code
-            </button>
+            <div className="scan-actions">
+              <button
+                type="button"
+                className="btn btn-soft btn-block btn-lg"
+                onClick={() => {
+                  setScanError(null);
+                  setScanning(true);
+                }}
+                disabled={busy || readingPhoto}
+              >
+                <Icon name="camera" /> Scan QR code
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-block"
+                onClick={() => photoInput.current?.click()}
+                disabled={busy || readingPhoto}
+                aria-describedby="photo-hint"
+              >
+                <Icon name="image" size={18} /> {readingPhoto ? 'Reading the photo…' : 'Choose a photo of the code'}
+              </button>
+              {/* No `capture` attribute: people need to pick a screenshot from the gallery, not only take a photo. */}
+              <input
+                ref={photoInput}
+                type="file"
+                accept="image/*"
+                className="visually-hidden-input"
+                tabIndex={-1}
+                aria-hidden="true"
+                data-testid="qr-photo-input"
+                onChange={(e) => void onPhoto(e)}
+              />
+              <p id="photo-hint" className="hint">
+                Pairing from afar? Your partner can save their QR image and send it to you.
+              </p>
+            </div>
+          )}
+          {scanError && (
+            <p className="field-error scan-error" role="alert">
+              {scanError}
+            </p>
           )}
 
           <div className="divider-text">
@@ -319,94 +405,5 @@ function JoinPartner({ onBack, onStarted, onContinue, started }: { onBack: () =>
         </>
       )}
     </section>
-  );
-}
-
-function cameraErrorMessage(e: unknown): string {
-  const name = (e as { name?: string })?.name;
-  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Camera access was denied. You can allow it in your browser settings, or just type the code below.';
-  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No camera found on this device. Type the code below instead.';
-  if (name === 'NotReadableError') return 'The camera is busy in another app. Close it and try again, or type the code.';
-  return "Couldn't start the camera. Type the code below instead.";
-}
-
-export function QrScanner({ onResult, onCancel, onError }: { onResult: (text: string) => void; onCancel: () => void; onError: (msg: string) => void }) {
-  const video = useRef<HTMLVideoElement>(null);
-  const [ready, setReady] = useState(false);
-  const cb = useRef({ onResult, onError });
-  cb.current = { onResult, onError };
-
-  useEffect(() => {
-    let stopped = false;
-    let stream: MediaStream | null = null;
-    let raf = 0;
-    const stop = () => {
-      stopped = true;
-      cancelAnimationFrame(raf);
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-    (async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        cb.current.onError('The camera needs a secure (https) connection in this browser. Type the code below instead.');
-        return;
-      }
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-      } catch (e) {
-        if (!stopped) cb.current.onError(cameraErrorMessage(e));
-        return;
-      }
-      if (stopped || !video.current) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      const v = video.current;
-      v.srcObject = stream;
-      try {
-        await v.play();
-      } catch {
-        /* autoplay quirks; frames still arrive */
-      }
-      setReady(true);
-      const jsQR = (await import('jsqr')).default;
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      let last = 0;
-      const tick = (now: number) => {
-        if (stopped) return;
-        raf = requestAnimationFrame(tick);
-        if (!ctx || now - last < 120 || v.readyState < 2 || !v.videoWidth) return;
-        last = now;
-        const k = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));
-        const w = Math.round(v.videoWidth * k);
-        const h = Math.round(v.videoHeight * k);
-        canvas.width = w;
-        canvas.height = h;
-        ctx.drawImage(v, 0, 0, w, h);
-        const img = ctx.getImageData(0, 0, w, h);
-        const found = jsQR(img.data, w, h, { inversionAttempts: 'attemptBoth' });
-        if (found?.data) {
-          stop();
-          cb.current.onResult(found.data);
-        }
-      };
-      raf = requestAnimationFrame(tick);
-    })();
-    return stop;
-  }, []);
-
-  return (
-    <div className="scanner">
-      <video ref={video} className="scanner-video" playsInline muted aria-label="Camera preview" />
-      <div className="scanner-frame" aria-hidden="true" />
-      {!ready && (
-        <div className="scanner-wait">
-          <span className="spinner" /> Starting camera…
-        </div>
-      )}
-      <button type="button" className="btn btn-glass scanner-cancel" onClick={onCancel}>
-        <Icon name="keyboard" size={18} /> Type instead
-      </button>
-    </div>
   );
 }

@@ -56,6 +56,16 @@ export interface Device {
   reopen(): Promise<Page>;
 }
 
+export interface DeviceOptions {
+  serviceWorkers?: 'allow' | 'block';
+  memeRoute?: MemeRoute;
+  goto?: boolean;
+  /** Extra Chromium flags (e.g. a fake camera). The device then gets its own browser process. */
+  browserArgs?: string[];
+  /** Permissions granted to the device's context, e.g. ['camera']. */
+  permissions?: string[];
+}
+
 export interface Env {
   browser: any;
   relay: Relay;
@@ -63,7 +73,7 @@ export interface Env {
   origin: string;
   log: NetLog;
   devices: Device[];
-  newDevice(name: string, opts?: { serviceWorkers?: 'allow' | 'block'; memeRoute?: MemeRoute; goto?: boolean }): Promise<Device>;
+  newDevice(name: string, opts?: DeviceOptions): Promise<Device>;
   restartRelay(): Promise<void>;
   stopRelay(): Promise<void>;
   startRelay(): Promise<void>;
@@ -90,6 +100,8 @@ export async function startEnv(): Promise<Env> {
   const origin = new URL(url).origin;
   const log: NetLog = { requests: [], frames: [], unexpected: [] };
   const devices: Device[] = [];
+  /** Browsers launched for devices that need their own flags. */
+  const extraBrowsers: any[] = [];
 
   function attachPage(page: Page, dev: Device) {
     page.on('websocket', (ws: any) => {
@@ -110,8 +122,14 @@ export async function startEnv(): Promise<Env> {
     log,
     devices,
     async newDevice(name, opts = {}) {
-      const context = await browser.newContext({
+      let owner = browser;
+      if (opts.browserArgs?.length) {
+        owner = await pw.chromium.launch({ args: opts.browserArgs });
+        extraBrowsers.push(owner);
+      }
+      const context = await owner.newContext({
         ...pw.devices['iPhone 13'],
+        ...(opts.permissions ? { permissions: opts.permissions } : {}),
         // Service workers would hide requests from context.route; only the PWA test allows them.
         serviceWorkers: opts.serviceWorkers ?? 'block',
         acceptDownloads: true,
@@ -166,6 +184,7 @@ export async function startEnv(): Promise<Env> {
     },
     async close() {
       for (const d of devices) await d.context.close().catch(() => {});
+      for (const b of extraBrowsers) await b.close().catch(() => {});
       await browser.close().catch(() => {});
       await relay.close().catch(() => {});
     },
@@ -181,7 +200,7 @@ export async function onboard(page: Page, name: string): Promise<void> {
   await page.getByRole('heading', { name: 'Pair with your partner' }).waitFor({ timeout: T.ui });
 }
 
-async function enterChat(page: Page): Promise<void> {
+export async function enterChat(page: Page): Promise<void> {
   // The success screen auto-advances after ~1.4 s; clicking just makes it quicker.
   await page
     .getByRole('button', { name: 'Start chatting' })
