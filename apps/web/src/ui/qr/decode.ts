@@ -65,17 +65,24 @@ export function jsqrDecode(img: Rgba): string | null {
   return found && found.data !== '' ? found.data : null;
 }
 
-/** Sizes tried for a still image: a quick downscaled pass first, then full resolution. */
-export const STILL_SIZES = [1024, Infinity] as const;
+/**
+ * Longest-side sizes to try for a still image: a quick downscaled pass, full resolution
+ * (capped at `cap`), then half of that. The half-size pass averages pixel noise and JPEG
+ * artefacts away, which rescues grainy photos jsQR can't binarise at full size.
+ */
+export function stillSizes(width: number, height: number, cap = Infinity): number[] {
+  const full = Math.min(Math.max(width, height), cap);
+  const out = [Math.min(1024, full)];
+  if (full !== out[0]) out.push(full);
+  const half = Math.round(full / 2);
+  if (half >= 64) out.push(half);
+  return out;
+}
 
 /** Decode a still image (photo/screenshot) at each size in turn; first hit wins. */
-export function decodeStill(img: Rgba, sizes: readonly number[] = STILL_SIZES): string | null {
-  let last: Rgba | null = null;
+export function decodeStill(img: Rgba, sizes: readonly number[] = stillSizes(img.width, img.height)): string | null {
   for (const max of sizes) {
-    const scaled = downscale(img, max);
-    if (last && scaled.width === last.width && scaled.height === last.height) continue;
-    last = scaled;
-    const v = jsqrDecode(scaled);
+    const v = jsqrDecode(downscale(img, max));
     if (v) return v;
   }
   return null;

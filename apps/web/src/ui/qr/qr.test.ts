@@ -2,7 +2,7 @@ import { encodePairingCode, generatePairingSecret } from '@memes/shared';
 import { describe, expect, it } from 'vitest';
 import { cameraMessage, cameraPrecheck, classifyCameraError } from './camera';
 import { codeCandidates, extractCode, parsePairingQr, pickPairingCode } from './code';
-import { decodeStill, downscale, fitWithin, jsqrDecode, type Rgba } from './decode';
+import { decodeStill, downscale, fitWithin, jsqrDecode, stillSizes, type Rgba } from './decode';
 import { cameraRegion, centerCrop, createQrDetector, nativeQrSupport } from './detector';
 import { QUIET_ZONE, qrMatrix, rasterize } from './matrix';
 import { qrSvg } from './render';
@@ -139,12 +139,16 @@ describe('jsQR pipeline', () => {
     expect(jsqrDecode(rasterize(m, { scale: 6, invert: true }))).toBe(code);
   });
 
-  it('decodes noisy, blurred and low-contrast codes', () => {
-    const base = rasterize(m, { scale: 7 });
-    expect(decodeStill(addNoise(base, 70, 0.02, 7))).toBe(code);
-    expect(decodeStill(blur(blur(base)))).toBe(code);
-    expect(decodeStill(rasterize(m, { scale: 6, darkLevel: 90, lightLevel: 190 }))).toBe(code);
-    expect(decodeStill(addNoise(rasterize(m, { scale: 5, invert: true }), 40, 0.01, 3))).toBe(code);
+  it('decodes noisy, blurred and low-contrast codes (many random codes)', () => {
+    for (let i = 0; i < 12; i++) {
+      const c = i === 0 ? code : newCode();
+      const mm = qrMatrix(c);
+      const base = rasterize(mm, { scale: 7 });
+      expect(decodeStill(addNoise(base, 70, 0.02, 7 + i)), `noise #${i}`).toBe(c);
+      expect(decodeStill(blur(blur(base))), `blur #${i}`).toBe(c);
+      expect(decodeStill(rasterize(mm, { scale: 6, darkLevel: 90, lightLevel: 190 })), `contrast #${i}`).toBe(c);
+      expect(decodeStill(addNoise(rasterize(mm, { scale: 5, invert: true }), 40, 0.01, 3 + i)), `inverted noise #${i}`).toBe(c);
+    }
   });
 
   it('finds a small code in a big screenshot (downscaled pass, then full resolution)', () => {
@@ -177,6 +181,9 @@ describe('jsQR pipeline', () => {
     expect(downscale(small, 1000)).toBe(small);
     expect(fitWithin(1920, 1080, 640)).toEqual({ width: 640, height: 360 });
     expect(fitWithin(300, 200, Infinity)).toEqual({ width: 300, height: 200 });
+    expect(stillSizes(1170, 2532)).toEqual([1024, 2532, 1266]);
+    expect(stillSizes(5000, 4000, 3000)).toEqual([1024, 3000, 1500]);
+    expect(stillSizes(300, 300)).toEqual([300, 150]);
   });
 });
 

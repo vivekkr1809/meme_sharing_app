@@ -1,11 +1,11 @@
 import { pickPairingCode } from './code';
-import { STILL_SIZES } from './decode';
+import { stillSizes } from './decode';
 import { createQrDetector, type QrDetector } from './detector';
 
 /**
  * Reading a QR code from a photo or screenshot (remote pairing). Same detector as the
- * camera; tries a quick downscaled pass, then full resolution (capped, so a 50 MP photo
- * doesn't exhaust memory on a phone).
+ * camera; tries a quick downscaled pass, full resolution (capped, so a 50 MP photo doesn't
+ * exhaust memory on a phone), then a half-size pass that smooths away noise.
  */
 
 /** Longest side we ever decode at. Big enough for a QR that is a small part of a screenshot. */
@@ -50,9 +50,11 @@ export async function scanImageFile(file: Blob, detector?: QrDetector): Promise<
   try {
     const d = detector ?? (await createQrDetector());
     const seen: string[] = [];
-    const sizes = d.kind === 'native' ? [Infinity, 1024] : STILL_SIZES;
+    const sizes = stillSizes(still.width, still.height, MAX_STILL_DIM);
+    // Native detectors cope with big images; give them full resolution first.
+    if (d.kind === 'native') sizes.sort((a, b) => b - a);
     for (const max of sizes) {
-      const values = await d.detect(still.source, still.width, still.height, { maxDim: Math.min(max, MAX_STILL_DIM) }).catch(() => []);
+      const values = await d.detect(still.source, still.width, still.height, { maxDim: max }).catch(() => []);
       for (const v of values) if (!seen.includes(v)) seen.push(v);
       if (pickPairingCode(seen).code) break;
     }
