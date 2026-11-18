@@ -109,13 +109,10 @@ describe('settings', () => {
     expect((await bubbleTexts(a.page)).filter((x) => texts.includes(x))).toEqual(texts);
   });
 
-  // BUG (see report): after a wipe, Settings → Import is only reachable once the pairing flow has
-  // created a NEW pairing secret ("Show my code" → "Continue anyway"). applyBackup() only adopts the
-  // backed-up device identity when the local profile has no secret
-  // (apps/web/src/db/backup.ts, `!local.secret && ownCount === 0`), so the restored history keeps the
-  // OLD deviceId as author and the user's own messages are shown as the partner's.
-  // vitest has no test.fixme: it.fails() runs the test and passes only while the bug is present.
-  it.fails('[fixme] restored history keeps "mine" attribution after wipe → onboard → import', async () => {
+  // Regression: after a wipe, Settings → Import is only reachable once the pairing flow has created a
+  // NEW pairing secret. applyBackup() must still adopt the backed-up identity (it now does whenever the
+  // device has no messages of its own), or the user's own messages would show as the partner's.
+  it('restored history keeps "mine" attribution after wipe → onboard → import', async () => {
     const mine = bubble(a.page, texts[0]!);
     expect(await mine.getAttribute('class')).toContain('mine');
     expect(await bubble(a.page, texts[1]!).getAttribute('class')).toContain('theirs');
@@ -147,14 +144,12 @@ describe('settings', () => {
       expect(env.relay.stats().joined).toBe(joinedBefore - 1);
     });
 
-    // BUG (see report): after unpairing, "Show my code" never shows the new code. The profile keeps
-    // partnerName, so Pairing.tsx:23 (`success = … || !!profile.partnerName`) declares success as soon
-    // as createPairing() sets a secret: a false "You're paired! Say hi to <old partner>" screen that
-    // auto-advances into the chat, connected to a room nobody else knows. Re-pairing is impossible
-    // without a wipe (ShowCode at Pairing.tsx:124 also refuses to show the code once partnerName is set).
-    it.fails('[fixme] after unpairing, "Show my code" shows a new code and the two can pair again', async () => {
+    // Regression: unpair keeps partnerName, which used to make "Show my code" declare a false
+    // "You're paired!" immediately. Success now requires a live connection or a new partner device.
+    it('after unpairing, "Show my code" shows a new code and the two can pair again', async () => {
       await c.page.getByRole('button', { name: /Show my code/ }).click();
       await c.page.locator('.pair-code').waitFor({ timeout: 5_000 });
+      await c.page.getByRole('button', { name: /Back/ }).click();
       await goTab(d.page, 'Settings');
       await d.page.getByRole('button', { name: 'Unpair', exact: true }).click();
       await d.page.getByRole('alertdialog').getByRole('button', { name: 'Unpair' }).click();

@@ -208,11 +208,14 @@ export async function applyBackup(db: MemesDB, b: PreparedBackup): Promise<{ mes
         : 0;
       if (!local) {
         local = { key: 'me', ...bp };
-      } else if (local.deviceId !== bp.deviceId && !local.secret && ownCount === 0) {
-        // Fresh (unpaired, no own messages) install restoring a backup: adopt the backed-up
-        // identity so the restored history keeps its "mine" attribution.
-        const { secret: _drop, ...rest } = local;
-        local = { ...rest, ...bp, key: 'me', displayName: local.displayName || bp.displayName };
+      } else if (local.deviceId !== bp.deviceId && ownCount === 0) {
+        // Fresh install (no own messages yet) restoring a backup: adopt the backed-up identity
+        // so the restored history keeps its "mine" attribution. A pairing secret created on
+        // this device before importing is kept (backups never contain one).
+        const secret = local.secret;
+        local = { ...local, ...bp, key: 'me', displayName: local.displayName || bp.displayName };
+        if (secret) local.secret = secret;
+        else delete local.secret;
       } else if (local.deviceId === bp.deviceId) {
         local = {
           ...local,

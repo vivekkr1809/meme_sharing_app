@@ -60,7 +60,11 @@ function Root() {
   // Enter the pairing flow whenever we're not paired; stay in it until it says it's done
   // (createPairing marks the profile paired immediately, before the partner connects).
   if (profile && !profile.paired && !pairingFlow) setPairingFlow(true);
-  const done = useCallback(() => setPairingFlow(false), []);
+  const done = useCallback(() => {
+    // Always land in the chat after (re-)pairing, not on whichever tab was open before (e.g. Settings → Unpair).
+    if (location.hash !== '#/chat') history.replaceState(null, '', '#/chat');
+    setPairingFlow(false);
+  }, []);
 
   if (!profile) return <Onboarding />;
   if (pairingFlow) return <Pairing onDone={done} />;

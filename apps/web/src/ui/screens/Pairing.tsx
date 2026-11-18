@@ -20,7 +20,17 @@ export function Pairing({ onDone }: { onDone: () => void }) {
   const connection = useConnection();
   const [mode, setMode] = useState<Mode>('choose');
   const [started, setStarted] = useState(false);
-  const success = started && !!profile?.paired && (connection === 'connected' || !!profile.partnerName);
+  // The partner device we already knew when this pairing attempt started (e.g. after "Unpair").
+  // Only a live connection, or hearing from a *different* device, counts as success.
+  const [knownPartner, setKnownPartner] = useState<string | undefined>(undefined);
+  const success =
+    started &&
+    !!profile?.paired &&
+    (connection === 'connected' || (!!profile.partnerDeviceId && profile.partnerDeviceId !== knownPartner));
+  const markStarted = () => {
+    setKnownPartner(profile?.partnerDeviceId);
+    setStarted(true);
+  };
   const back = () => {
     setStarted(false);
     setMode('choose');
@@ -84,8 +94,8 @@ export function Pairing({ onDone }: { onDone: () => void }) {
             </p>
           </>
         )}
-        {mode === 'show' && <ShowCode onBack={back} onStarted={() => setStarted(true)} onContinue={onDone} />}
-        {mode === 'join' && <JoinPartner onBack={back} onStarted={() => setStarted(true)} onContinue={onDone} started={started} />}
+        {mode === 'show' && <ShowCode onBack={back} onStarted={markStarted} onContinue={onDone} />}
+        {mode === 'join' && <JoinPartner onBack={back} onStarted={markStarted} onContinue={onDone} started={started} />}
       </div>
     </div>
   );

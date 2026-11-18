@@ -179,10 +179,14 @@ export class Engine implements DataServices {
         const prepared = await prepareBackup(await file.text());
         return this.serial(async () => {
           const before = this.settingsStore.get().relayUrl;
+          const deviceBefore = this.row?.deviceId;
           const res = await applyBackup(this.db, prepared);
           await this.loadState();
           this.memes.bump();
-          if (this.row?.secret && this.settingsStore.get().relayUrl !== before) await this.restartTransport();
+          const identityChanged = this.row?.deviceId !== deviceBefore;
+          if (this.row?.secret && (identityChanged || this.settingsStore.get().relayUrl !== before)) {
+            await this.restartTransport();
+          }
           else if (this.isConnected()) {
             await this.flushOutbox();
             await this.requestMissing();
