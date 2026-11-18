@@ -1,6 +1,6 @@
 # Private Meme Sharing App — Build Plan
 
-> Status: **Approved and built.** Waves 0–1 are merged and integrated. Wave 2 (E2E tests, security review) is in progress. See README.md for usage.
+> Status: **Built.** All waves are merged. 331 unit and integration tests plus 28 two-device E2E tests pass, and the security review is in docs/SECURITY.md. See README.md for usage.
 >
 > Deviations from this draft: the pairing fallback is a typed code (`XXXX-XXXX-…`) rather than 12 words. The optional app-lock passcode (§5.1.5) is deferred. A wiped phone without a backup recovers only the partner's messages (§10).
 
