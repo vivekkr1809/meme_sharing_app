@@ -117,6 +117,7 @@ deploy/           hosting guides, Fly.io / Caddy / coturn configs
 
 - **No notifications while the app is closed.** Push notifications need a cloud push service, which conflicts with the privacy goal. Messages arrive the next time both apps are open.
 - **Both phones must be online at the same time** for messages to deliver. Until then they wait in the sender's outbox.
+- **The passcode lock pauses syncing.** While Meme Pals is locked, it doesn't connect, so your partner's messages arrive after you unlock. If you forget the passcode, the only way back in is to wipe the phone. The lock hides what you wrote, not when: message times, who sent each one and meme sizes stay readable on the phone (details in [docs/SECURITY.md](docs/SECURITY.md), R-02).
 - **A wiped or lost phone** gets your partner's messages back after re-pairing, but not the messages it sent, unless you restore a backup.
 - **Very large backups.** A backup file holds every meme, so it can get big. Files over 1 GB are refused, and exporting or importing needs free memory of three to five times the backup's size, which an older phone may not have with a huge library.
 - **Strict mobile networks** occasionally block direct connections. If pairing never connects on cellular data, set up the optional TURN server described in [deploy/README.md](deploy/README.md).
