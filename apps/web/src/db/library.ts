@@ -14,14 +14,21 @@ export class MemeStore implements MemeLibrary {
   readonly version = writable(0);
   private urls = new Map<string, string>();
   private pendingUrls = new Map<string, Promise<string | null>>();
+  /** Bumped by revokeAll(): a getUrl() that started before it must not cache its URL. */
+  private generation = 0;
 
-  constructor(private readonly db: () => MemesDB) {}
+  /** `guard` throws (e.g. Error('locked')) when the public API must not be used. */
+  constructor(
+    private readonly db: () => MemesDB,
+    private readonly guard: () => void = () => {},
+  ) {}
 
   bump(): void {
     this.version.update((v) => v + 1);
   }
 
   async importImage(input: ImportImageInput): Promise<LibraryMeme> {
+    this.guard();
     if (!isMemeMime(input.mime)) throw new Error('invalid-mime');
     const data = toArrayBuffer(await input.blob.arrayBuffer());
     if (data.byteLength === 0) throw new Error('empty-image');
@@ -55,27 +62,37 @@ export class MemeStore implements MemeLibrary {
   }
 
   async get(memeId: string): Promise<LibraryMeme | undefined> {
+    this.guard();
     const row = await this.db().memes.get(memeId);
     return row ? toLibraryMeme(row) : undefined;
   }
 
   getUrl(memeId: string): Promise<string | null> {
+    try {
+      this.guard();
+    } catch (e) {
+      return Promise.reject(e);
+    }
     const cached = this.urls.get(memeId);
     if (cached) return Promise.resolve(cached);
     const pending = this.pendingUrls.get(memeId);
     if (pending) return pending;
+    const gen = this.generation;
     const p = (async () => {
       const row = await this.db().memeData.get(memeId);
-      if (!row) return null;
+      if (!row || gen !== this.generation) return null;
       const url = makeUrl(row.data, row.mime);
       this.urls.set(memeId, url);
       return url;
-    })().finally(() => this.pendingUrls.delete(memeId));
+    })().finally(() => {
+      if (this.pendingUrls.get(memeId) === p) this.pendingUrls.delete(memeId);
+    });
     this.pendingUrls.set(memeId, p);
     return p;
   }
 
   async list(opts: { favoritesOnly?: boolean; query?: string; limit?: number } = {}): Promise<LibraryMeme[]> {
+    this.guard();
     const q = opts.query?.trim().toLowerCase() ?? '';
     const limit = opts.limit && opts.limit > 0 ? opts.limit : Infinity;
     const out: LibraryMeme[] = [];
@@ -93,6 +110,7 @@ export class MemeStore implements MemeLibrary {
   }
 
   async toggleFavorite(memeId: string): Promise<boolean> {
+    this.guard();
     const db = this.db();
     const fav = await db.transaction('rw', db.memes, async () => {
       const row = await db.memes.get(memeId);
@@ -107,6 +125,7 @@ export class MemeStore implements MemeLibrary {
   }
 
   async remove(memeId: string): Promise<void> {
+    this.guard();
     const db = this.db();
     await db.transaction('rw', db.memes, db.memeData, async () => {
       await db.memes.delete(memeId);
@@ -198,6 +217,7 @@ export class MemeStore implements MemeLibrary {
   }
 
   revokeAll(): void {
+    this.generation++;
     for (const id of [...this.urls.keys()]) this.revoke(id);
     this.pendingUrls.clear();
   }

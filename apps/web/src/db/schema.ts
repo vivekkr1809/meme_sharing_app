@@ -1,6 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import type { MemeMeta, Message, MessageKind } from '@memes/shared';
 import type { LibraryMeme, Settings } from '../contracts';
+import { atRestMiddleware, type AtRestCrypto } from './atRest';
+import type { LockRow } from './lock';
 
 /**
  * Local IndexedDB schema (Dexie). This is the ONLY place user data is stored.
@@ -11,6 +13,11 @@ import type { LibraryMeme, Settings } from '../contracts';
  *   memes     sha256 hex      meme metadata; `has` = 1 once the bytes are stored
  *   memeData  sha256 hex      meme bytes as ArrayBuffer (+ mime); kept apart so listing memes is cheap
  *   outbox    ULID            own messages not yet acked by the partner
+ *   lock      key 'lock'      passcode lock record (v2): KDF params, wrapped data key, attempts
+ *
+ * With a passcode set, the content fields listed in `atRest.ts` (secret, names, message
+ * text/emoji, meme title/sourceUrl and bytes) are stored AES-GCM encrypted by the middleware
+ * that `new MemesDB(name, atRest)` installs. Without `atRest` the DB is opened raw (tests).
  *
  * Versioning: bump `DB_VERSION` and add a new `this.version(n).stores(...)` call (with an
  * `.upgrade()` if rows need rewriting). Never edit an existing version's definition.
@@ -67,7 +74,7 @@ export interface OutboxRow {
   lastTriedAt: number;
 }
 
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export class MemesDB extends Dexie {
   profile!: Table<ProfileRow, string>;
@@ -76,9 +83,11 @@ export class MemesDB extends Dexie {
   memes!: Table<MemeRow, string>;
   memeData!: Table<MemeDataRow, string>;
   outbox!: Table<OutboxRow, string>;
+  lock!: Table<LockRow, string>;
 
-  constructor(name: string) {
+  constructor(name: string, atRest?: AtRestCrypto) {
     super(name);
+    if (atRest) this.use(atRestMiddleware(atRest));
     this.version(1).stores({
       profile: '&key',
       settings: '&key',
@@ -88,6 +97,12 @@ export class MemesDB extends Dexie {
       memes: '&id, savedAt, has',
       memeData: '&id',
       outbox: '&id',
+    });
+    // v2: the passcode lock record, and a memeId index so `meme-want` can check "was this meme
+    // shared in the chat?" without reading (and, when locked at rest, decrypting) every message.
+    this.version(2).stores({
+      messages: '&id, [lane+id], [lane+replyTo], [authorId+id], memeId',
+      lock: '&key',
     });
   }
 }
