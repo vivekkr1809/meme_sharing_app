@@ -221,6 +221,17 @@ describe('heartbeat and limits', () => {
     expect(relay.stats()).toEqual({ rooms: 1, sockets: 1, joined: 1 });
   });
 
+  it('closes sockets that never join a room (R-10)', async () => {
+    await relay.close();
+    relay = await createRelay({ port: 0, heartbeatMs: 40, joinDeadlineMs: 60 });
+    const idle = track(await connect(relay.url)); // answers pings, but never joins
+    const member = track(await joined(relay.url, ROOM, DEV_A));
+    await idle.closed;
+    await new Promise((r) => setTimeout(r, 150));
+    expect(member.ws.readyState).toBe(WebSocket.OPEN);
+    expect(relay.stats()).toEqual({ rooms: 1, sockets: 1, joined: 1 });
+  });
+
   it('refuses websocket upgrades on other paths', async () => {
     const status = await new Promise<number>((resolve) => {
       const ws = new WebSocket(relay.url.replace(/^http/, 'ws') + '/proxy');

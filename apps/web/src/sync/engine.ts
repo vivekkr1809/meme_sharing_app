@@ -434,6 +434,12 @@ export class Engine implements DataServices {
       console.warn('[sync] ignoring msg that claims our deviceId as author');
       return;
     }
+    // R-06: once the partner has said hello, only accept messages authored by that device.
+    const partner = this.row!.partnerDeviceId;
+    if (partner && m.authorId !== partner) {
+      console.warn('[sync] ignoring msg whose author is not the paired partner');
+      return;
+    }
     if (isFarFuture(m.id)) {
       // Not acked: the partner keeps it in its outbox and retries once clocks agree.
       console.warn('[sync] ignoring msg whose id is too far in the future');
@@ -488,6 +494,12 @@ export class Engine implements DataServices {
     // A repeated want for a meme that is already being sent is a no-op. Without this, a
     // flood of wants would load (and queue) one full copy of the bytes per request.
     if (this.sendingBlobs.has(memeId)) return;
+    // R-05: only serve memes that were actually shared in the chat, never the private library.
+    const shared = await this.db.messages.filter((row) => row.memeId === memeId).first();
+    if (!shared) {
+      this.send({ type: 'meme-missing', memeId });
+      return;
+    }
     const t = this.transport;
     const blob = await this.memes.getData(memeId);
     if (!blob || !t || !this.isConnected()) {

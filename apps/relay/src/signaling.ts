@@ -51,6 +51,8 @@ const MAX_RATE_VIOLATIONS = 200;
 
 export interface SignalingOptions {
   heartbeatMs?: number;
+  /** Close sockets that have not joined a room within this many ms (default JOIN_DEADLINE_MS). */
+  joinDeadlineMs?: number;
   /** Token bucket: burst capacity and refill window (capacity tokens per windowMs). */
   rateLimit?: { capacity: number; windowMs: number };
   maxConnectionsPerIp?: number;
@@ -74,8 +76,12 @@ interface Client {
   tokens: number;
   lastRefill: number;
   lastSeen: number;
+  connectedAt: number;
   violations: number;
 }
+
+/** R-10: sockets that haven't sent `join` within this window are closed. */
+export const JOIN_DEADLINE_MS = 10_000;
 
 interface Room {
   id: string;
@@ -88,6 +94,7 @@ export class Signaling {
   private readonly rooms = new Map<string, Room>();
   private readonly perIp = new Map<string, number>();
   private readonly heartbeatMs: number;
+  private readonly joinDeadlineMs: number;
   private readonly capacity: number;
   private readonly refillPerMs: number;
   private readonly maxPerIp: number;
@@ -98,6 +105,7 @@ export class Signaling {
 
   constructor(opts: SignalingOptions) {
     this.heartbeatMs = opts.heartbeatMs ?? HEARTBEAT_MS;
+    this.joinDeadlineMs = opts.joinDeadlineMs ?? JOIN_DEADLINE_MS;
     this.capacity = opts.rateLimit?.capacity ?? 50;
     this.refillPerMs = this.capacity / (opts.rateLimit?.windowMs ?? 10_000);
     this.maxPerIp = opts.maxConnectionsPerIp ?? 20;
@@ -144,7 +152,7 @@ export class Signaling {
 
   private onConnection(ws: WebSocket, ip: string): void {
     const now = Date.now();
-    const client: Client = { ws, ip, tokens: this.capacity, lastRefill: now, lastSeen: now, violations: 0 };
+    const client: Client = { ws, ip, tokens: this.capacity, lastRefill: now, lastSeen: now, connectedAt: now, violations: 0 };
     this.clients.add(client);
     this.perIp.set(ip, (this.perIp.get(ip) ?? 0) + 1);
     this.logCounts('open');
@@ -259,7 +267,7 @@ export class Signaling {
   private sweep(): void {
     const deadline = Date.now() - this.heartbeatMs * 3;
     for (const c of this.clients) {
-      if (c.lastSeen < deadline) {
+      if (c.lastSeen < deadline || (!c.room && Date.now() - c.connectedAt > this.joinDeadlineMs)) {
         c.ws.terminate();
         continue;
       }

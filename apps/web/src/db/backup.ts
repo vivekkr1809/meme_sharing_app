@@ -187,7 +187,10 @@ export async function prepareBackup(text: string): Promise<PreparedBackup> {
     memes.push(data ? { row, data } : { row });
   }
 
-  return { profile, settings: sanitizeSettings(raw.settings), messages, memes };
+  // R-03: never take the relay URL from a backup file; a crafted backup could otherwise
+  // silently move signaling to someone else's relay.
+  const { relayUrl: _ignoredRelay, ...settings } = sanitizeSettings(raw.settings);
+  return { profile, settings, messages, memes };
 }
 
 /** Merge a prepared backup into the DB in one transaction. Returns how many messages/memes were added. */

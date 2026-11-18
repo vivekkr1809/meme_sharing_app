@@ -62,6 +62,9 @@ describe('malicious partner', () => {
       height: 1,
       source: 'upload',
     });
+    await A.svc.chat.sendMeme(meme.id); // only memes shared in the chat are served (R-05)
+    await settle([A, B]);
+    await sleep(20);
     const real = loop.a.sendBlob.bind(loop.a);
     let calls = 0;
     loop.a.sendBlob = async (...args) => {
@@ -73,6 +76,25 @@ describe('malicious partner', () => {
     await settle([A, B]);
     await sleep(80);
     expect(calls).toBe(1);
+  });
+
+  it('never serves memes that were not shared in the chat (R-05)', async () => {
+    const { A, B, loop } = await pair();
+    const meme = await A.svc.library.importImage({
+      blob: new Blob([randomImage(2000, 12)], { type: 'image/png' }),
+      mime: 'image/png',
+      width: 1,
+      height: 1,
+      source: 'upload',
+    });
+    let calls = 0;
+    loop.a.sendBlob = async () => {
+      calls++;
+    };
+    loop.b.send({ type: 'meme-want', memeId: meme.id });
+    await settle([A, B]);
+    expect(calls).toBe(0);
+    expect(loop.a.sent).toContainEqual({ type: 'meme-missing', memeId: meme.id });
   });
 
   it('ignores far-future message ids and read markers (they would pin the watermarks forever)', async () => {
@@ -137,5 +159,22 @@ describe('crafted backup files', () => {
     const url = await A.svc.library.getUrl(id);
     expect(url).toMatch(/^blob:/);
     expect(resolveObjectURL(url!)?.type).toBe('application/octet-stream');
+  });
+
+  it('only accepts messages authored by the paired partner (R-06)', async () => {
+    const { A, B, loop } = await pair();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    loop.a.send({ type: 'msg', message: { id: ulid(), authorId: 'someone-else-0001', kind: 'text', text: 'impostor', createdAt: Date.now() } });
+    await settle([A, B]);
+    expect(B.svc.chat.messages.get().map((m) => m.text)).not.toContain('impostor');
+  });
+
+  it('never takes the relay URL from a backup file (R-03)', async () => {
+    const { A, B } = await pair();
+    await A.svc.settings.update({ relayUrl: 'https://evil-relay.example', theme: 'dark' });
+    const file = await A.svc.backup.exportBackup();
+    await B.svc.settings.update({ relayUrl: '' });
+    await B.svc.backup.importBackup(file);
+    expect(B.svc.settings.settings.get()).toMatchObject({ relayUrl: '', theme: 'dark' });
   });
 });

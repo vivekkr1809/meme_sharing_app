@@ -31,6 +31,7 @@ export interface RelayOptions {
   // ── tuning knobs, mainly for tests ──
   /** Heartbeat interval; sockets silent for 3x this are dropped. Default HEARTBEAT_MS. */
   heartbeatMs?: number;
+  joinDeadlineMs?: number;
   /** Per-socket token bucket. Default 50 messages per 10 s. */
   rateLimit?: { capacity: number; windowMs: number };
   /** Concurrent WebSocket connections per client IP. Default 20. */
@@ -69,6 +70,7 @@ export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
   const signaling = new Signaling({
     heartbeatMs: opts.heartbeatMs,
     rateLimit: opts.rateLimit,
+    joinDeadlineMs: opts.joinDeadlineMs,
     maxConnectionsPerIp: opts.maxConnectionsPerIp,
     trustProxy: opts.trustProxy,
     log,
