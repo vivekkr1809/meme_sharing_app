@@ -596,3 +596,38 @@ describe('partner pinning', () => {
     expect(texts(A)).toContain('same device, new session');
   });
 });
+
+describe('backups with the lock enabled', () => {
+  it('export while unlocked carries plaintext inside the file; import re-encrypts at rest; both refuse while locked', async () => {
+    const { A, B } = await pair();
+    await seedHistory(A, B);
+    await A.svc.lock.enable(PASS);
+
+    // The middleware is transparent to db/backup.ts: a plain export holds the readable history.
+    const plain = await (await A.svc.backup.exportBackup()).text();
+    expect(plain).toContain('TEXT-alpha-from-alice');
+    expect(plain).not.toContain('"$enc"');
+    const file = await A.svc.backup.exportBackup({ password: 'backup-pass-123' });
+    expect(await file.text()).not.toContain('TEXT-alpha');
+
+    // A second device with its own passcode imports it: rows land encrypted under its own key.
+    const C = await openDevice(createLoopbackPair().a, uniqueDbName('c'), FAST);
+    open.push(C);
+    await C.svc.pairing.setDisplayName('Carol');
+    await C.svc.lock.enable('C-passcode-9');
+    expect(await C.svc.backup.importBackup(file, { password: 'backup-pass-123' })).toMatchObject({ messages: 4, memes: 1 });
+    expect(texts(C)).toEqual(expect.arrayContaining(['TEXT-alpha-from-alice', 'CAPTION-beta', 'TEXT-gamma-from-bob']));
+    const dump = await rawDump(C.dbName);
+    for (const s of ['TEXT-alpha', 'TEXT-gamma', 'CAPTION-beta', 'TITLE-secret', 'SOURCE-secret']) expect(dump).not.toContain(s);
+    expect((await C.svc.library.list())[0]!.title).toBe('TITLE-secret-cat');
+
+    // Locked: neither direction works.
+    await A.svc.lock.lockNow();
+    await C.svc.lock.lockNow();
+    await expect(A.svc.backup.exportBackup({ password: 'backup-pass-123' })).rejects.toThrow('locked');
+    await expect(A.svc.backup.exportBackup()).rejects.toThrow('locked');
+    await expect(C.svc.backup.importBackup(file, { password: 'backup-pass-123' })).rejects.toThrow('locked');
+    await C.svc.lock.unlock('C-passcode-9');
+    expect(texts(C)).toEqual(expect.arrayContaining(['TEXT-alpha-from-alice']));
+  });
+});
