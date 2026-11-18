@@ -94,6 +94,19 @@ describe('malicious partner', () => {
   });
 });
 
+describe('backup contents', () => {
+  it('never contains the pairing secret, in any encoding', async () => {
+    const { A, code } = await pair();
+    const row = await rawDb(A.dbName, (db) => db.profile.get('me'));
+    const text = await (await A.svc.backup.exportBackup()).text();
+    expect(row!.secret).toBeTruthy();
+    expect(text).not.toContain(row!.secret!);
+    expect(text).not.toContain(code);
+    expect(text).not.toContain(code.replace(/-/g, ''));
+    expect(text).not.toMatch(/"secret"/);
+  });
+});
+
 describe('crafted backup files', () => {
   it('skips SVG memes even when the bytes match the id', async () => {
     const { A } = await pair();
