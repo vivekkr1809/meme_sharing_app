@@ -1,8 +1,10 @@
 # Private Meme Sharing App — Build Plan
 
-> Status: **Built.** All waves are merged. 331 unit and integration tests plus 28 two-device E2E tests pass, and the security review is in docs/SECURITY.md. See README.md for usage.
+> Status: **Built.** Waves 0–4 are merged. 420 unit and integration tests plus 36 two-device E2E tests pass, and the security review is in docs/SECURITY.md. See README.md for usage.
 >
-> Deviations from this draft: the pairing fallback is a typed code (`XXXX-XXXX-…`) rather than 12 words. The optional app-lock passcode (§5.1.5) is deferred. A wiped phone without a backup recovers only the partner's messages (§10).
+> Wave 4 added the passcode lock (local data encrypted at rest, §5.1.5), password-encrypted backups, and hardened QR pairing (camera plus photo scanning, partner-device pinning).
+>
+> Deviations from this draft: the pairing fallback is a typed code (`XXXX-XXXX-…`) rather than 12 words. A wiped phone without a backup recovers only the partner's messages (§10). While the app is locked, it does not sync.
 
 ## 1. Goals and constraints
 

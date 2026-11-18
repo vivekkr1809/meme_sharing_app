@@ -255,6 +255,7 @@ export class Engine implements DataServices {
 
     this.backup = {
       exportBackup: async (opts) => {
+        this.assertUnlocked();
         const password = opts?.password;
         if (password !== undefined) assertBackupPassword(password);
         // Read the DB on the queue; encrypt (PBKDF2 + AES-GCM) off it so sync isn't blocked meanwhile.
@@ -262,6 +263,7 @@ export class Engine implements DataServices {
         return password === undefined ? new Blob([plain], { type: 'application/json' }) : encryptBackup(plain, password);
       },
       importBackup: async (file, opts) => {
+        this.assertUnlocked();
         const prepared = await readBackup(file, opts?.password);
         return this.serial(async () => {
           const before = this.settingsStore.get().relayUrl;
