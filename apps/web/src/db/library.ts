@@ -1,4 +1,4 @@
-import { MAX_MEME_BYTES, sha256Hex, toBase64Url, type MemeMeta } from '@memes/shared';
+import { MAX_MEME_BYTES, isMemeMime, sha256Hex, toBase64Url, type MemeMeta } from '@memes/shared';
 import { writable } from '../lib/store';
 import type { ImportImageInput, LibraryMeme, MemeLibrary } from '../contracts';
 import { toArrayBuffer, toLibraryMeme, toMemeMeta, type MemeRow, type MemesDB } from './schema';
@@ -22,7 +22,7 @@ export class MemeStore implements MemeLibrary {
   }
 
   async importImage(input: ImportImageInput): Promise<LibraryMeme> {
-    if (typeof input.mime !== 'string' || !/^image\//.test(input.mime)) throw new Error('invalid-mime');
+    if (!isMemeMime(input.mime)) throw new Error('invalid-mime');
     const data = toArrayBuffer(await input.blob.arrayBuffer());
     if (data.byteLength === 0) throw new Error('empty-image');
     if (data.byteLength > MAX_MEME_BYTES) throw new Error('too-large');
@@ -173,7 +173,7 @@ export class MemeStore implements MemeLibrary {
     };
     if (!row) return reject('not requested');
     if (row.has) return false; // duplicate delivery; already stored
-    if (!/^image\//.test(mime)) return reject(`bad mime ${mime}`);
+    if (!isMemeMime(mime)) return reject(`bad mime ${String(mime).slice(0, 64)}`);
     if (data.byteLength === 0 || data.byteLength > MAX_MEME_BYTES) return reject(`bad size ${data.byteLength}`);
     if (row.size >= 0 && row.size !== data.byteLength) return reject(`size ${data.byteLength} != ${row.size}`);
     if (row.mime && row.mime !== mime) return reject(`mime ${mime} != ${row.mime}`);
@@ -203,7 +203,11 @@ export class MemeStore implements MemeLibrary {
   }
 }
 
-function makeUrl(data: ArrayBuffer, mime: string): string {
+function makeUrl(data: ArrayBuffer, storedMime: string): string {
+  // Last line of defence: a blob: URL lives on our origin, so never give one a type the
+  // browser would render as a document (SVG, HTML). Rows written before the allow-list
+  // existed fall back to an inert type; raster images still render in <img>.
+  const mime = isMemeMime(storedMime) ? storedMime : 'application/octet-stream';
   if (typeof URL.createObjectURL === 'function' && typeof Blob !== 'undefined') {
     return URL.createObjectURL(new Blob([data], { type: mime }));
   }

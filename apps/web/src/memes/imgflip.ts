@@ -29,8 +29,13 @@ export function parseImgflipTemplates(json: unknown): MemeTemplate[] {
     const boxes = typeof m.box_count === 'number' && Number.isFinite(m.box_count) ? Math.floor(m.box_count) : 2;
     let url = '';
     try {
+      // Templates must come from Imgflip's image CDN (also the only host the CSP and the
+      // relay's image proxy allow for them); upgrade to https like every allow-listed host.
       const u = new URL(typeof m.url === 'string' ? m.url : '');
-      if (u.protocol === 'https:' || u.protocol === 'http:') url = u.href;
+      if ((u.protocol === 'https:' || u.protocol === 'http:') && u.hostname === 'i.imgflip.com' && !u.username && !u.password && !u.port) {
+        u.protocol = 'https:';
+        url = u.href;
+      }
     } catch {
       /* skip */
     }
