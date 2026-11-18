@@ -1,0 +1,232 @@
+import { createReadStream, type Stats } from 'node:fs';
+import { realpath, stat } from 'node:fs/promises';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import path from 'node:path';
+import { PROXY_IMAGE_HOSTS } from '@memes/shared';
+
+/**
+ * Read-only static file server for the built PWA, with SPA fallback.
+ * Never writes anything. Path traversal (including encoded and backslash
+ * variants, and symlinks pointing outside the root) is refused.
+ */
+
+const MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.wasm': 'application/wasm',
+};
+
+const IMAGE_ORIGINS = PROXY_IMAGE_HOSTS.map((h) => `https://${h}`);
+/** Hosts the app talks to directly (it falls back to this relay's /proxy when they refuse). */
+const DIRECT_API_ORIGINS = ['https://www.reddit.com', 'https://api.imgflip.com'];
+/** Local development relays (`relayUrl` = http://localhost:8787 in Settings). */
+const LOCAL_DEV = ['http://localhost:*', 'ws://localhost:*', 'http://127.0.0.1:*', 'ws://127.0.0.1:*'];
+/** A CSP source expression: no whitespace, separators or quotes that could inject a directive. */
+const SOURCE_TOKEN = /^[A-Za-z0-9*][A-Za-z0-9.:/*_-]*$/;
+
+/**
+ * Content-Security-Policy for the PWA.
+ *
+ * - script-src 'self': no inline or remote script, no eval. This is what makes any HTML
+ *   injection (or an SVG opened from a blob: URL, which inherits this policy) inert.
+ * - style-src allows 'unsafe-inline' for the critical-paint <style> in index.html.
+ * - img-src: our own files, blob:/data: (memes from IndexedDB, the QR code) and the
+ *   allow-listed meme CDNs. Any other host is blocked, so rendering never leaks the IP.
+ * - connect-src: this origin (API, proxy, same-origin ws/wss), Reddit/Imgflip JSON, the
+ *   image CDNs, any wss: relay (signaling to a relay chosen in Settings) plus `extraConnect`.
+ */
+export function contentSecurityPolicy(extraConnect: readonly string[] = []): string {
+  const extra = extraConnect.filter((t) => SOURCE_TOKEN.test(t));
+  const directives: [string, ...string[]][] = [
+    ['default-src', "'self'"],
+    ['script-src', "'self'"],
+    ['style-src', "'self'", "'unsafe-inline'"],
+    ['img-src', "'self'", 'blob:', 'data:', ...IMAGE_ORIGINS],
+    ['font-src', "'self'"],
+    ['connect-src', "'self'", ...DIRECT_API_ORIGINS, ...IMAGE_ORIGINS, 'blob:', 'data:', 'wss:', ...LOCAL_DEV, ...extra],
+    ['media-src', "'self'", 'blob:'],
+    ['worker-src', "'self'"],
+    ['manifest-src', "'self'"],
+    ['object-src', "'none'"],
+    ['frame-src', "'none'"],
+    ['base-uri', "'none'"],
+    ['form-action', "'none'"],
+    ['frame-ancestors', "'none'"],
+  ];
+  return directives.map((d) => d.join(' ')).join('; ');
+}
+
+/** Headers on every static response (the app shell, its assets and the service worker). */
+export function staticSecurityHeaders(extraConnect: readonly string[] = []): Record<string, string> {
+  return {
+    'Content-Security-Policy': contentSecurityPolicy(extraConnect),
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'X-Frame-Options': 'DENY',
+    // Camera only for this origin (QR pairing); nothing else.
+    'Permissions-Policy':
+      'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), display-capture=()',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+  };
+}
+
+const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'manifest.webmanifest', 'registerSW.js']);
+/** Vite-style content hash in the file name, e.g. index-B2x9fQ_a.js or workbox-5ffe50d4.js. */
+const HASHED_NAME = /[.-][A-Za-z0-9_-]{8,}\.[a-z0-9]+$/;
+
+export interface StaticFilesOptions {
+  /** Extra CSP connect-src sources (e.g. "https://other-relay.example"). */
+  cspConnectSrc?: readonly string[];
+}
+
+export class StaticFiles {
+  private rootReal?: Promise<string>;
+  private readonly securityHeaders: Record<string, string>;
+
+  constructor(
+    private readonly root: string,
+    opts: StaticFilesOptions = {},
+  ) {
+    this.securityHeaders = staticSecurityHeaders(opts.cspConnectSrc);
+  }
+
+  /** Serve a GET/HEAD request. Returns false if nothing was found (caller sends 404). */
+  async serve(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<boolean> {
+    const root = await (this.rootReal ??= realpath(path.resolve(this.root)));
+
+    const file = await this.resolve(root, pathname);
+    if (file === 'forbidden') {
+      sendPlain(res, 403, 'Forbidden', this.securityHeaders);
+      return true;
+    }
+    if (file) {
+      await sendFile(req, res, file.path, file.stats, this.securityHeaders);
+      return true;
+    }
+    // SPA fallback: only for navigations to extensionless routes, never for missing assets.
+    if (path.posix.extname(pathname) === '' || pathname.endsWith('/')) {
+      const index = await this.resolve(root, '/index.html');
+      if (index && index !== 'forbidden') {
+        await sendFile(req, res, index.path, index.stats, this.securityHeaders);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async resolve(root: string, pathname: string): Promise<{ path: string; stats: Stats } | 'forbidden' | null> {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      return 'forbidden';
+    }
+    if (decoded.includes('\0') || decoded.includes('\\')) return 'forbidden';
+    const segments = decoded.split('/');
+    if (segments.some((s) => s === '..')) return 'forbidden';
+    // Hidden files (".env", ".git") are never served; ".well-known" is allowed.
+    if (segments.some((s) => s.startsWith('.') && s !== '.well-known' && s !== '.')) return 'forbidden';
+
+    let candidate = path.resolve(root, '.' + path.posix.normalize('/' + decoded));
+    if (!isInside(root, candidate)) return 'forbidden';
+
+    let stats: Stats;
+    try {
+      stats = await stat(candidate);
+      if (stats.isDirectory()) {
+        candidate = path.join(candidate, 'index.html');
+        stats = await stat(candidate);
+      }
+      if (!stats.isFile()) return null;
+      const real = await realpath(candidate);
+      if (!isInside(root, real)) return 'forbidden';
+      return { path: real, stats };
+    } catch {
+      return null;
+    }
+  }
+}
+
+function isInside(root: string, p: string): boolean {
+  return p === root || p.startsWith(root.endsWith(path.sep) ? root : root + path.sep);
+}
+
+function cacheControl(file: string): string {
+  const name = path.basename(file);
+  if (NO_CACHE_FILES.has(name) || name.endsWith('.html')) return 'no-cache';
+  if (HASHED_NAME.test(name)) return 'public, max-age=31536000, immutable';
+  return 'no-cache';
+}
+
+async function sendFile(
+  req: IncomingMessage,
+  res: ServerResponse,
+  file: string,
+  stats: Stats,
+  security: Record<string, string>,
+): Promise<void> {
+  const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+  const headers: Record<string, string | number> = {
+    ...security,
+    'Content-Type': MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream',
+    'Cache-Control': cacheControl(file),
+    ETag: etag,
+    'Last-Modified': stats.mtime.toUTCString(),
+  };
+  if (path.basename(file) === 'sw.js') headers['Service-Worker-Allowed'] = '/';
+
+  if (req.headers['if-none-match'] === etag) {
+    res.writeHead(304, headers);
+    res.end();
+    return;
+  }
+  headers['Content-Length'] = stats.size;
+  res.writeHead(200, headers);
+  if (req.method === 'HEAD') {
+    res.end();
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    const stream = createReadStream(file);
+    stream.on('error', () => {
+      res.destroy();
+      resolve();
+    });
+    res.on('close', () => {
+      stream.destroy();
+      resolve();
+    });
+    stream.pipe(res);
+  });
+}
+
+function sendPlain(res: ServerResponse, status: number, text: string, security: Record<string, string>): void {
+  res.writeHead(status, {
+    ...security,
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Length': Buffer.byteLength(text),
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  res.end(text);
+}

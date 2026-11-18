@@ -1,0 +1,28 @@
+# Optional TURN server for Meme Pals.
+#
+#   cd deploy/coturn
+#   # edit turnserver.conf (realm, external-ip, password) and put certs in ./certs
+#   docker compose up -d
+#
+# Firewall: allow 3478/udp, 3478/tcp, 5349/tcp and 49160-49200/udp.
+# Then give the relay TURN_URLS / TURN_USERNAME / TURN_CREDENTIAL (see deploy/README.md).
+
+services:
+  coturn:
+    image: coturn/coturn:4.7
+    restart: unless-stopped
+    # TURN allocates a UDP port per relayed session; host networking avoids
+    # publishing a large port range through Docker's NAT.
+    network_mode: host
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./certs:/etc/coturn/certs:ro
+    # Nothing is persisted: read-only root, scratch space in RAM only.
+    read_only: true
+    tmpfs:
+      - /var/lib/coturn
+      - /tmp
+    # Discard logs (they contain client IPs). Switch to "json-file" temporarily to debug.
+    logging:
+      driver: "none"
